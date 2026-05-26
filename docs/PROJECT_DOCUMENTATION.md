@@ -77,15 +77,20 @@ Script:
 
 Input (ignored in git):
 - `sourcefiles/`
+- `sourcefiles/joydesign/` (new primary image source)
 
 Outputs (versioned, app runtime):
-- `public/assets/devices/throttle/throttle-main.png`
-- `public/assets/devices/joystick/joystick-main.png`
-- additional angle references in `public/assets/devices/**`
+- `public/assets/devices/throttle/throttle-front.png`
+- `public/assets/devices/throttle/throttle-angled.png`
+- `public/assets/devices/throttle/throttle-multi-angle.png`
+- `public/assets/devices/joystick/joystick-front.png`
+- `public/assets/devices/joystick/joystick-angled.png`
+- `public/assets/devices/joystick/joystick-base-top.png`
+- `public/assets/devices/joystick/joystick-grip-closeup.png`
 
 Current method:
-- Automatic background removal from white background source image
-- Crop + alpha generation
+- Deterministic crop extraction from curated `joydesign` scenes
+- Split combined HOTAS images into per-device views for left/right app panels
 
 ## 6) UI Notes
 
@@ -93,12 +98,12 @@ Current method:
 - Left panel = throttle, right panel = joystick (when assigned)
 - Tooltips contain readable action labels in English
 - Unmapped controls are clearly listed so placement can be completed in editor
-- Theme is now dark sci-fi HUD style (cyan neon accents, space background, angular panel language)
+- Theme is now dark and clean (black/graphite/white) with subtle turquoise accent only
 
 ## 7) Known Limitations
 
 - Default hotspot positions are starter values, not full manufacturer-accurate mapping
-- Some additional angle images include printed callouts/text in source marketing visuals
+- Hotspot coordinates are still seeded defaults and may need per-angle manual refinement
 - If XML includes unusual input patterns, normalization may need extension
 
 ## 8) Deployment (GitHub Pages)
@@ -146,3 +151,5 @@ After each functional change:
 - Switched Pages deployment strategy to `gh-pages` branch publication for easier bootstrap
 - Fixed static image path resolution for project-pages subpath deployments
 - Reworked UI skin to dark space/HUD visual style
+- Replaced app visual assets with `joydesign` image set and new angle crops
+- Tuned UI to a cleaner dark palette with less blue dominance

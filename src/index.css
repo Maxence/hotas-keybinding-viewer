@@ -1,14 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 
 :root {
-  --ink: #d8f5ff;
-  --ink-soft: #7ec8e1;
-  --ink-faint: #5f91a6;
-  --accent: #21d8ff;
-  --danger: #ff7b7b;
+  --ink: #edf0f3;
+  --ink-soft: #b0b7bd;
+  --ink-faint: #8b949d;
+  --line: #2a3036;
+  --line-strong: #434c54;
+  --accent: #8bbfc6;
+  --accent-muted: #6a959d;
+  --danger: #e48d8d;
 
-  --sans: 'Rajdhani', 'Segoe UI', sans-serif;
-  --heading: 'Orbitron', 'Rajdhani', sans-serif;
+  --sans: 'Chakra Petch', 'Segoe UI', sans-serif;
+  --heading: 'Chakra Petch', 'Segoe UI', sans-serif;
   --mono: 'JetBrains Mono', Consolas, monospace;
 
   font-family: var(--sans);
@@ -33,13 +36,12 @@ body {
 
 body {
   background:
-    radial-gradient(1px 1px at 11% 24%, rgba(255, 255, 255, 0.9), transparent 1.6px),
-    radial-gradient(1px 1px at 76% 17%, rgba(255, 255, 255, 0.64), transparent 1.6px),
-    radial-gradient(1px 1px at 43% 64%, rgba(255, 255, 255, 0.55), transparent 1.7px),
-    radial-gradient(1px 1px at 86% 74%, rgba(255, 255, 255, 0.46), transparent 1.8px),
-    radial-gradient(780px 360px at 22% 0%, rgba(0, 80, 171, 0.34), transparent),
-    radial-gradient(880px 420px at 84% 8%, rgba(0, 145, 197, 0.27), transparent),
-    linear-gradient(180deg, #020814 0%, #010611 48%, #00050f 100%);
+    radial-gradient(1px 1px at 8% 15%, rgba(255, 255, 255, 0.85), transparent 1.4px),
+    radial-gradient(1px 1px at 64% 9%, rgba(255, 255, 255, 0.6), transparent 1.4px),
+    radial-gradient(1px 1px at 27% 71%, rgba(255, 255, 255, 0.5), transparent 1.5px),
+    radial-gradient(1px 1px at 81% 62%, rgba(255, 255, 255, 0.43), transparent 1.5px),
+    radial-gradient(860px 300px at 50% -8%, rgba(140, 152, 163, 0.12), transparent),
+    linear-gradient(180deg, #0a0b0d 0%, #07080a 50%, #060708 100%);
   color: var(--ink);
 }
 

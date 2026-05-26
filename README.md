@@ -36,8 +36,9 @@ npm run prepare:assets
 ```
 
 Ce script:
-- détoure les vues principales throttle + joystick (PNG transparents)
-- copie des vues d'angles supplémentaires (WebP)
+- génère les visuels app à partir de `sourcefiles/joydesign`
+- découpe les vues combinées en panneaux `throttle` et `joystick`
+- copie les vues de détail (grip, base top, multi-angle)
 
 ## Déploiement GitHub Pages
 
@@ -61,4 +62,4 @@ La doc technique maintenue est ici:
 ## Notes récentes
 
 - Correction des chemins d'assets pour GitHub Pages (`BASE_URL`) afin d'éviter les `404` sur les images.
-- Nouveau thème visuel sombre/HUD inspiré interface spatiale (Star Citizen style).
+- Nouveau thème visuel sombre sobre (noir/gris/blanc) avec accent turquoise léger.
