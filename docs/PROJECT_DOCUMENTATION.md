@@ -136,14 +136,39 @@ Manual setup on GitHub:
 4. Select `gh-pages` and folder `/(root)`
 5. Push to `main` (or rerun workflow manually)
 
-## 9) Maintenance Rule
+## 9) Star Citizen Device Order Troubleshooting
+
+When joystick/throttle assignments appear swapped in-game because device order changed, use Star Citizen console commands:
+
+1. Open console (`~`)
+2. Dump detected devices:
+   - `i_DumpDeviceInformation`
+3. Swap two joystick binding slots:
+   - `pp_resortdevices joystick <slotA> <slotB>`
+
+Meaning:
+- `slotA` and `slotB` are joystick slot indexes used by Star Citizen bindings.
+- The command swaps bindings between the two slots.
+
+Known official examples:
+- `pp_resortdevices joystick 1 2`
+- `pp_resortdevices joystick 4 1`
+- `pp_resortdevices joystick 5 2`
+
+Note:
+- This fixes device order mismatch, not axis inversion. Axis inversion must be adjusted in control options for the selected joystick.
+
+Reference:
+- https://support.robertsspaceindustries.com/hc/en-us/articles/360000183328-Create-export-and-import-custom-profiles
+
+## 10) Maintenance Rule
 
 After each functional change:
 1. Update this documentation file in the same commit
 2. Mention new commands/files/state keys if any
 3. Run `npm run lint` and `npm run build`
 
-## 10) Change Log
+## 11) Change Log
 
 ### 2026-05-26
 
@@ -168,3 +193,4 @@ After each functional change:
 - Switched drawing engine to pointer events + pointer capture and auto-fallback to first control key
 - Added zone data toolbox (export/import/reset) to persist and share manual mappings
 - Added bundled default zones entrypoint (`src/data/defaultZones.ts`) merged with local overrides
+- Added troubleshooting note for swapped joystick order (`i_DumpDeviceInformation` + `pp_resortdevices`)

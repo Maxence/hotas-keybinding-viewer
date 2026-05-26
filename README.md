@@ -82,6 +82,37 @@ Le repo est prêt pour un déploiement automatique via GitHub Actions.
 URL finale attendue:
 - `https://<ton-user>.github.io/hotas-keybinding-viewer/`
 
+## Dépannage: joystick inversé (ordre des périphériques)
+
+Si Star Citizen inverse tes périphériques (ex: throttle devient `Joystick 2` au lieu de `Joystick 1`), tu peux corriger sans tout rebind:
+
+1. Ouvre la console en jeu (`~`)
+2. Liste les périphériques détectés:
+```text
+i_DumpDeviceInformation
+```
+3. Échange les bindings entre 2 slots joystick:
+```text
+pp_resortdevices joystick 1 2
+```
+
+Signification des paramètres:
+- `joystick`: type de périphérique concerné
+- `1` et `2`: numéros de slots joystick à permuter (swap des bindings entre ces deux slots)
+
+Exemple RSI aussi documenté:
+```text
+pp_resortdevices joystick 4 1
+pp_resortdevices joystick 5 2
+```
+
+Important:
+- Cette commande corrige un **ordre inversé** des périphériques, pas une inversion d'axe.
+- Pour un axe inversé (avant/arrière, Y, etc.), il faut régler l'inversion dans les options de contrôles du joystick concerné.
+
+Source officielle RSI:
+- https://support.robertsspaceindustries.com/hc/en-us/articles/360000183328-Create-export-and-import-custom-profiles
+
 ## Documentation interne
 
 La doc technique maintenue est ici:
