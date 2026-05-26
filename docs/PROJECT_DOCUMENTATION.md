@@ -27,6 +27,7 @@ Core requirements implemented:
 - `src/lib/bindings.ts`
   - XML parser
   - `jsX_...` input extraction
+  - joystick ids from `<options type="joystick" instance="...">` even if no binding exists
   - Human-readable English labels (category + action + control)
 - `src/lib/hotspots.ts`
   - LocalStorage persistence for hotspot overrides
@@ -75,8 +76,9 @@ Editor mode:
 - Enable editor from assignment panel
 - Select a control in the control list
 - Click + drag on image to draw a rectangle zone
+- Control list expands with unbound controls for full mapping (buttons, axes, sliders, hat/pov directions)
 - Remove selected zone or clear all zones on current angle
-- Assign explicit direction tag to selected control (`center/up/down/left/right`)
+- Assign explicit direction tag to selected control (`left/up/right/down/center`)
 - Link additional controls to the same zone rectangle for HAT/POV grouping
 - Export full zones data as JSON
 - Import zones JSON to restore/share a zone set
@@ -85,6 +87,11 @@ Editor mode:
 Zone grouping behavior:
 - If multiple controls share identical zone geometry, UI renders one zone box and one tooltip.
 - Tooltip lists each linked control with its resolved direction and actions.
+
+Preview mode filtering:
+- Multi-select filter menu by parent family (`Spaceship`, `Player`, etc.) and detailed map (`Spaceship Weapons`, etc.)
+- Parent selection includes all maps in the family
+- `Clear modes` resets the filter
 
 Legacy migration:
 - If `hotas-viewer.zones.v2` is missing, the app tries to migrate old point-based data from `hotas-viewer.hotspots.v1`.
@@ -117,6 +124,7 @@ Current method:
 - Left panel = throttle, right panel = joystick (when assigned)
 - Tooltips contain readable action labels in English
 - Unmapped controls are clearly listed so placement can be completed in editor
+- In preview mode, only zones with actions matching selected filters are shown
 - Theme is now dark and clean (black/graphite/white) with subtle turquoise accent only
 
 ## 7) Known Limitations
@@ -206,3 +214,10 @@ After each functional change:
 - Added troubleshooting note for swapped joystick order (`i_DumpDeviceInformation` + `pp_resortdevices`)
 - Added multi-control shared-zone workflow with optional direction tags (`center/up/down/left/right`)
 - Added grouped rendering for overlapping zones (one tooltip per physical zone)
+
+### 2026-05-27
+
+- Added joystick discovery from XML `<options>` nodes to keep device slots visible even when not bound
+- Added editor control catalog expansion for unbound controls (buttons/axes/sliders/hat/pov)
+- Added preview mode filter menu with multi-select parent+child categories and clear action
+- Updated direction choice ordering to `left/up/right/down/center` for HAT workflows

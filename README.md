@@ -52,6 +52,10 @@ Pour placer précisément les actions sur les boutons:
 
 Les zones sont sauvegardées automatiquement en local (`localStorage`).
 
+Quand `Enable zone editor` est actif:
+- la liste inclut aussi les contrôles non bindés du XML actuel
+- axes et boutons sont proposés pour pouvoir préparer un layout complet
+
 ### Zone multi-boutons (HAT / POV)
 
 Tu peux maintenant associer plusieurs contrôles à **une seule zone physique**:
@@ -59,17 +63,25 @@ Tu peux maintenant associer plusieurs contrôles à **une seule zone physique**:
 1. Sélectionner un contrôle et dessiner sa zone
 2. Dans l'éditeur, utiliser `Link another control to this same zone`
 3. Choisir un autre contrôle, puis sa direction:
-   - `Center`
-   - `Up`
-   - `Down`
    - `Left`
+   - `Up`
    - `Right`
+   - `Down`
+   - `Center`
    - ou `Auto` (déduit de `hatX_up`, `povY_left`, etc.)
 4. Cliquer `Link control to zone`
 
 Cas pris en charge:
 - HAT complet (`up/down/left/right` + éventuellement `center`)
 - HAT partiel (ex: seulement `up/down/center`)
+
+## Filtres preview (multi-sélection)
+
+En mode preview (éditeur désactivé), tu peux filtrer les actions affichées avec:
+- un parent (ex: `Spaceship`) qui inclut toutes ses sous-catégories
+- des sous-catégories précises (ex: `Spaceship Weapons`)
+- sélection multiple
+- bouton `Clear modes`
 
 ### Sauvegarde et partage des zones
 

@@ -192,12 +192,29 @@
 
 .assignment-card select,
 .angle-select-label select {
+  appearance: none;
   border: 1px solid var(--line-strong);
   border-radius: 0.42rem;
-  padding: 0.42rem 0.48rem;
+  padding: 0.42rem 2rem 0.42rem 0.56rem;
   background: #0f1114;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(200, 210, 216, 0.88) 50%),
+    linear-gradient(135deg, rgba(200, 210, 216, 0.88) 50%, transparent 50%);
+  background-position:
+    calc(100% - 0.95rem) calc(50% - 0.12rem),
+    calc(100% - 0.66rem) calc(50% - 0.12rem);
+  background-size: 0.36rem 0.36rem, 0.36rem 0.36rem;
+  background-repeat: no-repeat;
   color: var(--ink);
   font: inherit;
+}
+
+.assignment-card select:focus,
+.angle-select-label select:focus,
+.tool-label select:focus {
+  outline: none;
+  border-color: var(--accent-muted);
+  box-shadow: 0 0 0 1px rgba(148, 204, 211, 0.33);
 }
 
 .assignment-count {
@@ -276,6 +293,60 @@
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--ink-faint);
+}
+
+.preview-filter-bar {
+  margin: 0.62rem 0 0.72rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.44rem;
+}
+
+.filter-menu-button.is-open {
+  border-color: var(--accent-muted);
+}
+
+.preview-filter-menu {
+  margin-bottom: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: 0.52rem;
+  padding: 0.58rem;
+  background: rgba(12, 14, 16, 0.92);
+  max-height: 260px;
+  overflow: auto;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.filter-family {
+  border: 1px solid var(--line);
+  border-radius: 0.44rem;
+  padding: 0.5rem;
+  background: rgba(16, 18, 21, 0.94);
+  display: grid;
+  gap: 0.42rem;
+}
+
+.filter-map-list {
+  display: grid;
+  gap: 0.22rem;
+  padding-left: 0.32rem;
+}
+
+.filter-check {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.filter-check input {
+  accent-color: #90c7ce;
+}
+
+.filter-check.map {
+  font-size: 0.78rem;
 }
 
 .device-canvas {
@@ -552,10 +623,19 @@
 }
 
 .tool-label select {
+  appearance: none;
   border: 1px solid var(--line-strong);
   border-radius: 0.42rem;
-  padding: 0.42rem 0.48rem;
+  padding: 0.42rem 1.8rem 0.42rem 0.48rem;
   background: #0f1114;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(200, 210, 216, 0.88) 50%),
+    linear-gradient(135deg, rgba(200, 210, 216, 0.88) 50%, transparent 50%);
+  background-position:
+    calc(100% - 0.9rem) calc(50% - 0.12rem),
+    calc(100% - 0.61rem) calc(50% - 0.12rem);
+  background-size: 0.36rem 0.36rem, 0.36rem 0.36rem;
+  background-repeat: no-repeat;
   color: var(--ink);
   font: inherit;
   text-transform: none;

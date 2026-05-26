@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_DIRECTION_OVERRIDES } from './data/defaultZoneDirections'
 import { DEFAULT_ZONE_OVERRIDES } from './data/defaultZones'
 import { JOYSTICK_ANGLES, THROTTLE_ANGLES } from './data/deviceProfiles'
-import { parseBindingsXml } from './lib/bindings'
+import { formatControlLabel, parseBindingsXml } from './lib/bindings'
 import {
   clearAngleDirections,
   cloneDirectionOverrides,
@@ -52,6 +52,14 @@ interface RenderZoneGroup {
   zone: ControlZone
   controlKeys: string[]
 }
+
+interface ActionFilterFamily {
+  family: string
+  maps: string[]
+}
+
+const AXIS_TOKENS = ['x', 'y', 'z', 'rx', 'ry', 'rz', 'u', 'v']
+const DIRECTION_SEQUENCE: DirectionPickerValue[] = ['auto', 'left', 'up', 'right', 'down', 'center']
 
 function App() {
   const [xmlFileName, setXmlFileName] = useState<string>('')
@@ -438,6 +446,8 @@ function DevicePanel({
   const [draftZone, setDraftZone] = useState<ControlZone | null>(null)
   const [linkTargetControlKey, setLinkTargetControlKey] = useState<string>('')
   const [linkDirectionValue, setLinkDirectionValue] = useState<DirectionPickerValue>('auto')
+  const [selectedActionFilters, setSelectedActionFilters] = useState<string[]>([])
+  const [filterMenuOpen, setFilterMenuOpen] = useState<boolean>(false)
   const dragStartRef = useRef<DrawPoint | null>(null)
   const drawingControlKeyRef = useRef<string>('')
 
@@ -451,16 +461,66 @@ function DevicePanel({
     return map
   }, [bindings])
 
-  const controls = useMemo(
-    () =>
-      Array.from(bindingsByControl.keys()).sort((a, b) =>
-        compactControlLabel(a).localeCompare(compactControlLabel(b), 'en'),
-      ),
-    [bindingsByControl],
+  const actionFilterFamilies = useMemo(
+    () => buildActionFilterFamilies(bindings),
+    [bindings],
   )
+
+  const availableFilterKeys = useMemo(() => {
+    const keys: string[] = []
+    for (const family of actionFilterFamilies) {
+      keys.push(makeFamilyFilterKey(family.family))
+      for (const mapLabel of family.maps) {
+        keys.push(makeMapFilterKey(mapLabel))
+      }
+    }
+    return keys
+  }, [actionFilterFamilies])
+
+  const selectedFilterSet = useMemo(() => {
+    const available = new Set(availableFilterKeys)
+    return new Set(selectedActionFilters.filter((filterKey) => available.has(filterKey)))
+  }, [selectedActionFilters, availableFilterKeys])
+
+  const previewBindingsByControl = useMemo(() => {
+    const map = new Map<string, BindingRecord[]>()
+    for (const binding of bindings) {
+      if (!matchesPreviewFilter(binding, selectedFilterSet)) {
+        continue
+      }
+
+      const list = map.get(binding.controlKey) ?? []
+      list.push(binding)
+      map.set(binding.controlKey, list)
+    }
+    return map
+  }, [bindings, selectedFilterSet])
+
+  const controls = useMemo(() => {
+    const controlKeys = new Set<string>([...bindingsByControl.keys(), ...Object.keys(mergedZones)])
+    if (editorEnabled) {
+      const expanded = buildEditorControlCatalog(Array.from(controlKeys))
+      for (const controlKey of expanded) {
+        controlKeys.add(controlKey)
+      }
+    }
+
+    return Array.from(controlKeys).sort((a, b) =>
+      compactControlLabel(a).localeCompare(compactControlLabel(b), 'en'),
+    )
+  }, [bindingsByControl, mergedZones, editorEnabled])
 
   const mappedControls = controls.filter((controlKey) => mergedZones[controlKey] !== undefined)
   const unmappedControls = controls.filter((controlKey) => mergedZones[controlKey] === undefined)
+
+  const visibleControls = editorEnabled
+    ? controls
+    : controls.filter((controlKey) => {
+        if (!mergedZones[controlKey]) {
+          return false
+        }
+        return (previewBindingsByControl.get(controlKey) ?? []).length > 0
+      })
 
   const activeControlKey = editControlKey || controls[0] || ''
   const activeZone = activeControlKey ? mergedZones[activeControlKey] : undefined
@@ -487,13 +547,26 @@ function DevicePanel({
   )
 
   const zoneGroups = useMemo(
-    () => buildZoneGroups(mappedControls, mergedZones),
-    [mappedControls, mergedZones],
+    () => buildZoneGroups(visibleControls.filter((controlKey) => !!mergedZones[controlKey]), mergedZones),
+    [visibleControls, mergedZones],
   )
+  const listControls = editorEnabled ? controls : visibleControls
   const effectiveLinkTargetControlKey =
     linkCandidates.includes(linkTargetControlKey) ?
       linkTargetControlKey
     : (linkCandidates[0] ?? '')
+
+  const toggleActionFilter = (filterKey: string) => {
+    setSelectedActionFilters((current) =>
+      current.includes(filterKey) ?
+        current.filter((key) => key !== filterKey)
+      : [...current, filterKey],
+    )
+  }
+
+  const clearActionFilters = () => {
+    setSelectedActionFilters([])
+  }
 
   const beginDraw = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!editorEnabled || event.button !== 0) {
@@ -588,6 +661,8 @@ function DevicePanel({
     onSetDirection(deviceKind, selectedAngle.id, effectiveLinkTargetControlKey, linkDirectionValue)
   }
 
+  const displayBindingsByControl = editorEnabled ? bindingsByControl : previewBindingsByControl
+
   return (
     <article className="panel device-panel">
       <div className="panel-heading">
@@ -605,6 +680,67 @@ function DevicePanel({
           </select>
         </label>
       </div>
+
+      {!editorEnabled && (
+        <>
+          <div className="preview-filter-bar">
+            <button
+              type="button"
+              className={`ghost-button filter-menu-button ${filterMenuOpen ? 'is-open' : ''}`}
+              onClick={() => setFilterMenuOpen((current) => !current)}
+              disabled={actionFilterFamilies.length === 0}
+            >
+              Preview modes:{' '}
+              {selectedFilterSet.size === 0 ? 'All' : `${selectedFilterSet.size} selected`}
+            </button>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={clearActionFilters}
+              disabled={selectedFilterSet.size === 0}
+            >
+              Clear modes
+            </button>
+          </div>
+          {filterMenuOpen && (
+            <div className="preview-filter-menu">
+              {actionFilterFamilies.map((family) => {
+                const familyKey = makeFamilyFilterKey(family.family)
+                return (
+                  <div className="filter-family" key={family.family}>
+                    <label className="filter-check">
+                      <input
+                        type="checkbox"
+                        checked={selectedFilterSet.has(familyKey)}
+                        onChange={() => toggleActionFilter(familyKey)}
+                      />
+                      <span>{family.family}</span>
+                    </label>
+                    <div className="filter-map-list">
+                      {family.maps.map((mapLabel) => {
+                        const mapKey = makeMapFilterKey(mapLabel)
+                        return (
+                          <label className="filter-check map" key={mapLabel}>
+                            <input
+                              type="checkbox"
+                              checked={selectedFilterSet.has(mapKey)}
+                              onChange={() => toggleActionFilter(mapKey)}
+                            />
+                            <span>{mapLabel}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+              {actionFilterFamilies.length === 0 && (
+                <p className="empty-message">No binding modes found.</p>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       {joystickId ? (
         <>
@@ -662,12 +798,12 @@ function DevicePanel({
                   <span className="hotspot-tooltip">
                     <strong>
                       {group.controlKeys.length === 1
-                        ? bindingsByControl.get(group.controlKeys[0])?.[0]?.controlLabel ??
-                          group.controlKeys[0]
+                        ? displayBindingsByControl.get(group.controlKeys[0])?.[0]?.controlLabel ??
+                          formatControlLabel(group.controlKeys[0])
                         : `${group.controlKeys.length} linked controls`}
                     </strong>
                     {group.controlKeys.map((controlKey) => {
-                      const controlBindings = bindingsByControl.get(controlKey) ?? []
+                      const controlBindings = displayBindingsByControl.get(controlKey) ?? []
                       const actionLabels = uniqueActionLabels(controlBindings)
                       const direction = resolveDirection(controlKey, overrideDirections)
                       const directionPrefix = direction
@@ -714,8 +850,10 @@ function DevicePanel({
           <div className="list-wrap">
             <h3>Control List</h3>
             <div className="control-list">
-              {controls.map((controlKey) => {
-                const controlBindings = bindingsByControl.get(controlKey) ?? []
+              {listControls.map((controlKey) => {
+                const controlBindings =
+                  (editorEnabled ? bindingsByControl : previewBindingsByControl).get(controlKey) ??
+                  []
                 const boundActions = uniqueActionLabels(controlBindings)
                 const hasZone = mergedZones[controlKey] !== undefined
 
@@ -727,8 +865,10 @@ function DevicePanel({
                     onClick={() => onEditControlKeyChange(controlKey)}
                   >
                     <span className="left">
-                      <strong>{controlBindings[0]?.controlLabel ?? controlKey}</strong>
-                      <small>{boundActions.join(' • ')}</small>
+                      <strong>{controlBindings[0]?.controlLabel ?? formatControlLabel(controlKey)}</strong>
+                      <small>
+                        {boundActions.length > 0 ? boundActions.join(' • ') : 'No binding in current XML'}
+                      </small>
                     </span>
                     <span className={`status-dot ${hasZone ? 'ok' : 'todo'}`} />
                   </button>
@@ -755,12 +895,11 @@ function DevicePanel({
                           handleSelectedDirectionChange(event.target.value as DirectionPickerValue)
                         }
                       >
-                        <option value="auto">Auto from control name</option>
-                        <option value="center">Center</option>
-                        <option value="up">Up</option>
-                        <option value="down">Down</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
+                        {DIRECTION_SEQUENCE.map((direction) => (
+                          <option value={direction} key={direction}>
+                            {directionPickerLabel(direction)}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <span className="tool-hint">
@@ -784,7 +923,8 @@ function DevicePanel({
                         {linkCandidates.length === 0 && <option value="">No controls available</option>}
                         {linkCandidates.map((controlKey) => (
                           <option key={controlKey} value={controlKey}>
-                            {bindingsByControl.get(controlKey)?.[0]?.controlLabel ?? controlKey}
+                            {bindingsByControl.get(controlKey)?.[0]?.controlLabel ??
+                              formatControlLabel(controlKey)}
                           </option>
                         ))}
                       </select>
@@ -797,12 +937,11 @@ function DevicePanel({
                           setLinkDirectionValue(event.target.value as DirectionPickerValue)
                         }
                       >
-                        <option value="auto">Auto</option>
-                        <option value="center">Center</option>
-                        <option value="up">Up</option>
-                        <option value="down">Down</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
+                        {DIRECTION_SEQUENCE.map((direction) => (
+                          <option value={direction} key={direction}>
+                            {direction === 'auto' ? 'Auto for linked control' : directionTagLabel(direction)}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <button
@@ -968,7 +1107,7 @@ function buildGroupDirectionLabel(
     return compactControlLabel(controlKeys[0])
   }
 
-  const ordered: DirectionTag[] = ['center', 'up', 'down', 'left', 'right']
+  const ordered: DirectionTag[] = ['left', 'up', 'right', 'down', 'center']
   const tagSet = new Set<DirectionTag>()
 
   for (const controlKey of controlKeys) {
@@ -983,6 +1122,122 @@ function buildGroupDirectionLabel(
     return `${controlKeys.length} keys`
   }
   return summary.join('/')
+}
+
+function directionPickerLabel(direction: DirectionPickerValue): string {
+  if (direction === 'auto') {
+    return 'Auto from control name'
+  }
+  return directionTagLabel(direction)
+}
+
+function buildEditorControlCatalog(existingControls: string[]): string[] {
+  const controls = new Set(existingControls)
+  let maxButton = 32
+  let maxSlider = 2
+  let maxHat = 1
+  let maxPov = 1
+
+  for (const controlKey of controls) {
+    const buttonMatch = /^button(\d+)$/i.exec(controlKey)
+    if (buttonMatch) {
+      maxButton = Math.max(maxButton, Number.parseInt(buttonMatch[1], 10))
+      continue
+    }
+
+    const sliderMatch = /^slider(\d+)$/i.exec(controlKey)
+    if (sliderMatch) {
+      maxSlider = Math.max(maxSlider, Number.parseInt(sliderMatch[1], 10))
+      continue
+    }
+
+    const hatMatch = /^hat(\d+)_(up|down|left|right)$/i.exec(controlKey)
+    if (hatMatch) {
+      maxHat = Math.max(maxHat, Number.parseInt(hatMatch[1], 10))
+      continue
+    }
+
+    const povMatch = /^pov(\d+)_(up|down|left|right)$/i.exec(controlKey)
+    if (povMatch) {
+      maxPov = Math.max(maxPov, Number.parseInt(povMatch[1], 10))
+    }
+  }
+
+  for (let index = 1; index <= maxButton; index += 1) {
+    controls.add(`button${index}`)
+  }
+
+  for (const axis of AXIS_TOKENS) {
+    controls.add(axis)
+  }
+
+  for (let index = 1; index <= maxSlider; index += 1) {
+    controls.add(`slider${index}`)
+  }
+
+  for (let index = 1; index <= maxHat; index += 1) {
+    controls.add(`hat${index}_left`)
+    controls.add(`hat${index}_up`)
+    controls.add(`hat${index}_right`)
+    controls.add(`hat${index}_down`)
+  }
+
+  for (let index = 1; index <= maxPov; index += 1) {
+    controls.add(`pov${index}_left`)
+    controls.add(`pov${index}_up`)
+    controls.add(`pov${index}_right`)
+    controls.add(`pov${index}_down`)
+  }
+
+  return Array.from(controls)
+}
+
+function buildActionFilterFamilies(bindings: BindingRecord[]): ActionFilterFamily[] {
+  const byFamily = new Map<string, Set<string>>()
+  for (const binding of bindings) {
+    const family = extractActionFamily(binding.actionMapLabel)
+    const existing = byFamily.get(family) ?? new Set<string>()
+    existing.add(binding.actionMapLabel)
+    byFamily.set(family, existing)
+  }
+
+  return Array.from(byFamily.entries())
+    .map(([family, maps]) => ({
+      family,
+      maps: Array.from(maps).sort((a, b) => a.localeCompare(b, 'en')),
+    }))
+    .sort((a, b) => a.family.localeCompare(b.family, 'en'))
+}
+
+function extractActionFamily(actionMapLabel: string): string {
+  const trimmed = actionMapLabel.trim()
+  if (!trimmed) {
+    return 'Other'
+  }
+
+  const firstSpace = trimmed.indexOf(' ')
+  if (firstSpace === -1) {
+    return trimmed
+  }
+  return trimmed.slice(0, firstSpace)
+}
+
+function makeFamilyFilterKey(family: string): string {
+  return `family:${family}`
+}
+
+function makeMapFilterKey(mapLabel: string): string {
+  return `map:${mapLabel}`
+}
+
+function matchesPreviewFilter(binding: BindingRecord, selectedFilters: Set<string>): boolean {
+  if (selectedFilters.size === 0) {
+    return true
+  }
+
+  const familyKey = makeFamilyFilterKey(extractActionFamily(binding.actionMapLabel))
+  const mapKey = makeMapFilterKey(binding.actionMapLabel)
+  return selectedFilters.has(familyKey) || selectedFilters.has(mapKey)
 }
 
 function buildDefaultAssignments(joystickIds: number[]): DeviceAssignment {

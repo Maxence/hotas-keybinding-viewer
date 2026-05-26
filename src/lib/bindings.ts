@@ -27,6 +27,7 @@ export function parseBindingsXml(xmlText: string): ParsedProfile {
 
   const profileName = root.getAttribute('profileName')?.trim() || 'Unnamed profile'
   const records: BindingRecord[] = []
+  const joystickIdsFromOptions = readJoystickIdsFromOptions(root)
   const actionMaps = Array.from(root.getElementsByTagName('actionmap'))
 
   for (const actionMapNode of actionMaps) {
@@ -66,15 +67,35 @@ export function parseBindingsXml(xmlText: string): ParsedProfile {
     }
   }
 
-  const joystickIds = Array.from(new Set(records.map((record) => record.joystickId))).sort(
-    (a, b) => a - b,
-  )
+  const joystickIds = Array.from(
+    new Set([...joystickIdsFromOptions, ...records.map((record) => record.joystickId)]),
+  ).sort((a, b) => a - b)
 
   return {
     profileName,
     joystickIds,
     bindings: records,
   }
+}
+
+function readJoystickIdsFromOptions(root: Element): number[] {
+  const optionsNodes = Array.from(root.getElementsByTagName('options'))
+  const ids: number[] = []
+
+  for (const node of optionsNodes) {
+    const type = node.getAttribute('type')?.trim().toLowerCase()
+    if (type !== 'joystick') {
+      continue
+    }
+
+    const instanceRaw = node.getAttribute('instance')?.trim() ?? ''
+    const parsed = Number.parseInt(instanceRaw, 10)
+    if (!Number.isNaN(parsed)) {
+      ids.push(parsed)
+    }
+  }
+
+  return ids
 }
 
 function parseJoystickInput(inputRaw: string): { joystickId: number; controlKey: string } | null {
