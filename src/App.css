@@ -342,7 +342,37 @@
 }
 
 .filter-check input {
-  accent-color: #90c7ce;
+  appearance: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.2rem;
+  background: #0b0d10;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.filter-check input:checked {
+  border-color: #a8d4da;
+  background: linear-gradient(180deg, #97cfd6, #75bac3);
+}
+
+.filter-check input:checked::after {
+  content: '';
+  position: absolute;
+  left: 0.28rem;
+  top: 0.08rem;
+  width: 0.18rem;
+  height: 0.44rem;
+  border: solid #071014;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.filter-check span {
+  cursor: pointer;
 }
 
 .filter-check.map {
@@ -400,6 +430,64 @@
   z-index: 4;
   border-radius: 0.32rem;
   border: 1px solid rgba(150, 164, 170, 0.68);
+}
+
+.callout-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.callout-lines line {
+  stroke: rgba(121, 199, 210, 0.86);
+  stroke-width: 0.28;
+  stroke-linecap: round;
+}
+
+.callout-card {
+  position: absolute;
+  z-index: 5;
+  border: 1px solid rgba(108, 159, 166, 0.74);
+  border-radius: 0.46rem;
+  padding: 0.3rem 0.42rem;
+  background: linear-gradient(165deg, rgba(7, 10, 12, 0.96), rgba(9, 13, 16, 0.96));
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(155, 199, 206, 0.09);
+  color: #e6eef1;
+  text-align: left;
+  display: grid;
+  gap: 0.15rem;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.callout-card strong {
+  font-size: 0.72rem;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  color: #edf5f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.callout-card span {
+  font-size: 0.67rem;
+  color: #c7d5da;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.callout-card.is-selected {
+  border-color: #b6e1e7;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(180, 233, 241, 0.24),
+    inset 0 0 0 1px rgba(155, 199, 206, 0.13);
 }
 
 .zone-hitbox:hover {

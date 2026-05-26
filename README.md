@@ -83,6 +83,13 @@ En mode preview (éditeur désactivé), tu peux filtrer les actions affichées a
 - sélection multiple
 - bouton `Clear modes`
 
+### Affichage preview sans hover
+
+En mode preview (éditeur désactivé):
+- les infobulles sont affichées en permanence autour du device
+- un trait relie chaque infobulle à la zone bouton/axe
+- placement automatique gauche/droite/haut/bas pour limiter les chevauchements
+
 ### Sauvegarde et partage des zones
 
 Dans le panneau `Profile & Device Assignment`:

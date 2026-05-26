@@ -92,6 +92,12 @@ Preview mode filtering:
 - Multi-select filter menu by parent family (`Spaceship`, `Player`, etc.) and detailed map (`Spaceship Weapons`, etc.)
 - Parent selection includes all maps in the family
 - `Clear modes` resets the filter
+- Filter checkboxes are custom-styled to match HUD theme
+
+Preview callout layout:
+- Tooltips are always visible in preview mode (no hover required)
+- Each tooltip is connected to its source zone with a line
+- Side-aware placement (`left/right/top/bottom`) with distribution by side to reduce overlap
 
 Legacy migration:
 - If `hotas-viewer.zones.v2` is missing, the app tries to migrate old point-based data from `hotas-viewer.hotspots.v1`.
@@ -221,3 +227,5 @@ After each functional change:
 - Added editor control catalog expansion for unbound controls (buttons/axes/sliders/hat/pov)
 - Added preview mode filter menu with multi-select parent+child categories and clear action
 - Updated direction choice ordering to `left/up/right/down/center` for HAT workflows
+- Replaced hover-only tooltips in preview with always-visible perimeter callouts connected by guide lines
+- Refined preview filter UI styling for a more integrated dark HUD appearance

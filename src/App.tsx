@@ -53,6 +53,23 @@ interface RenderZoneGroup {
   controlKeys: string[]
 }
 
+interface PreviewCallout {
+  key: string
+  side: 'left' | 'right' | 'top' | 'bottom'
+  left: number
+  top: number
+  width: number
+  height: number
+  sourceX: number
+  sourceY: number
+  targetX: number
+  targetY: number
+  title: string
+  lines: string[]
+  selectionKey: string
+  isSelected: boolean
+}
+
 interface ActionFilterFamily {
   family: string
   maps: string[]
@@ -662,6 +679,10 @@ function DevicePanel({
   }
 
   const displayBindingsByControl = editorEnabled ? bindingsByControl : previewBindingsByControl
+  const previewCallouts = useMemo(
+    () => buildPreviewCallouts(zoneGroups, displayBindingsByControl, overrideDirections, editControlKey),
+    [zoneGroups, displayBindingsByControl, overrideDirections, editControlKey],
+  )
 
   return (
     <article className="panel device-panel">
@@ -767,61 +788,99 @@ function DevicePanel({
               draggable={false}
               onDragStart={(event) => event.preventDefault()}
             />
-            {zoneGroups.map((group) => {
-              const selectionKey = group.controlKeys.includes(editControlKey)
-                ? editControlKey
-                : group.controlKeys[0]
-              const isSelected = editControlKey ? group.controlKeys.includes(editControlKey) : false
+            {editorEnabled &&
+              zoneGroups.map((group) => {
+                const selectionKey = group.controlKeys.includes(editControlKey)
+                  ? editControlKey
+                  : group.controlKeys[0]
+                const isSelected = editControlKey ? group.controlKeys.includes(editControlKey) : false
 
-              return (
-                <button
-                  type="button"
-                  className={`zone-hitbox ${isSelected ? 'is-selected' : ''}`}
-                  key={group.key}
-                  style={{
-                    left: `${group.zone.x}%`,
-                    top: `${group.zone.y}%`,
-                    width: `${group.zone.width}%`,
-                    height: `${group.zone.height}%`,
-                  }}
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onEditControlKeyChange(selectionKey)
-                  }}
-                >
-                  <span className="zone-label">
-                    {group.controlKeys.length === 1
-                      ? compactControlLabel(group.controlKeys[0])
-                      : buildGroupDirectionLabel(group.controlKeys, overrideDirections)}
-                  </span>
-                  <span className="hotspot-tooltip">
-                    <strong>
+                return (
+                  <button
+                    type="button"
+                    className={`zone-hitbox ${isSelected ? 'is-selected' : ''}`}
+                    key={group.key}
+                    style={{
+                      left: `${group.zone.x}%`,
+                      top: `${group.zone.y}%`,
+                      width: `${group.zone.width}%`,
+                      height: `${group.zone.height}%`,
+                    }}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onEditControlKeyChange(selectionKey)
+                    }}
+                  >
+                    <span className="zone-label">
                       {group.controlKeys.length === 1
-                        ? displayBindingsByControl.get(group.controlKeys[0])?.[0]?.controlLabel ??
-                          formatControlLabel(group.controlKeys[0])
-                        : `${group.controlKeys.length} linked controls`}
-                    </strong>
-                    {group.controlKeys.map((controlKey) => {
-                      const controlBindings = displayBindingsByControl.get(controlKey) ?? []
-                      const actionLabels = uniqueActionLabels(controlBindings)
-                      const direction = resolveDirection(controlKey, overrideDirections)
-                      const directionPrefix = direction
-                        ? `${directionTagLabel(direction)} • `
-                        : ''
+                        ? compactControlLabel(group.controlKeys[0])
+                        : buildGroupDirectionLabel(group.controlKeys, overrideDirections)}
+                    </span>
+                    <span className="hotspot-tooltip">
+                      <strong>
+                        {group.controlKeys.length === 1
+                          ? displayBindingsByControl.get(group.controlKeys[0])?.[0]?.controlLabel ??
+                            formatControlLabel(group.controlKeys[0])
+                          : `${group.controlKeys.length} linked controls`}
+                      </strong>
+                      {group.controlKeys.map((controlKey) => {
+                        const controlBindings = displayBindingsByControl.get(controlKey) ?? []
+                        const actionLabels = uniqueActionLabels(controlBindings)
+                        const direction = resolveDirection(controlKey, overrideDirections)
+                        const directionPrefix = direction
+                          ? `${directionTagLabel(direction)} • `
+                          : ''
 
-                      return (
-                        <span key={controlKey}>
-                          {directionPrefix}
-                          {controlBindings[0]?.controlLabel ?? controlKey}
-                          {actionLabels.length > 0 ? ` — ${actionLabels.join(' | ')}` : ''}
-                        </span>
-                      )
-                    })}
-                  </span>
-                </button>
-              )
-            })}
+                        return (
+                          <span key={controlKey}>
+                            {directionPrefix}
+                            {controlBindings[0]?.controlLabel ?? controlKey}
+                            {actionLabels.length > 0 ? ` — ${actionLabels.join(' | ')}` : ''}
+                          </span>
+                        )
+                      })}
+                    </span>
+                  </button>
+                )
+              })}
+            {!editorEnabled && previewCallouts.length > 0 && (
+              <>
+                <svg className="callout-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {previewCallouts.map((callout) => (
+                    <line
+                      key={`line-${callout.key}`}
+                      x1={callout.sourceX}
+                      y1={callout.sourceY}
+                      x2={callout.targetX}
+                      y2={callout.targetY}
+                    />
+                  ))}
+                </svg>
+                {previewCallouts.map((callout) => (
+                  <button
+                    type="button"
+                    key={callout.key}
+                    className={`callout-card side-${callout.side} ${callout.isSelected ? 'is-selected' : ''}`}
+                    style={{
+                      left: `${callout.left}%`,
+                      top: `${callout.top}%`,
+                      width: `${callout.width}%`,
+                      height: `${callout.height}%`,
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onEditControlKeyChange(callout.selectionKey)
+                    }}
+                  >
+                    <strong>{callout.title}</strong>
+                    {callout.lines.map((line) => (
+                      <span key={line}>{line}</span>
+                    ))}
+                  </button>
+                ))}
+              </>
+            )}
             {draftZone && (
               <div
                 className="zone-draft"
@@ -1122,6 +1181,170 @@ function buildGroupDirectionLabel(
     return `${controlKeys.length} keys`
   }
   return summary.join('/')
+}
+
+function buildPreviewCallouts(
+  zoneGroups: RenderZoneGroup[],
+  bindingsByControl: Map<string, BindingRecord[]>,
+  directionOverrides: Record<string, DirectionTag>,
+  editControlKey: string,
+): PreviewCallout[] {
+  const sideWidth = 29
+  const topWidth = 24
+  const sideHeight = 10
+  const topHeight = 9
+
+  const provisional = zoneGroups.map((group) => {
+    const sourceX = clamp(group.zone.x + group.zone.width / 2, 0, 100)
+    const sourceY = clamp(group.zone.y + group.zone.height / 2, 0, 100)
+    const side = pickCalloutSide(sourceX, sourceY)
+    const selectionKey = group.controlKeys.includes(editControlKey) ? editControlKey : group.controlKeys[0]
+    const isSelected = editControlKey ? group.controlKeys.includes(editControlKey) : false
+    const title =
+      group.controlKeys.length === 1 ?
+        bindingsByControl.get(group.controlKeys[0])?.[0]?.controlLabel ??
+        formatControlLabel(group.controlKeys[0])
+      : `${buildGroupDirectionLabel(group.controlKeys, directionOverrides)} • ${group.controlKeys.length} controls`
+
+    const lines = group.controlKeys
+      .slice()
+      .sort((a, b) =>
+        directionSortRank(resolveDirection(a, directionOverrides)).localeCompare(
+          directionSortRank(resolveDirection(b, directionOverrides)),
+          'en',
+        ),
+      )
+      .map((controlKey) => {
+        const direction = resolveDirection(controlKey, directionOverrides)
+        const directionText = direction ? `${directionTagLabel(direction)} • ` : ''
+        const bindings = bindingsByControl.get(controlKey) ?? []
+        const actions = summarizeActions(uniqueActionLabels(bindings), 2)
+        const label = bindings[0]?.controlLabel ?? formatControlLabel(controlKey)
+        return `${directionText}${label}${actions ? ` — ${actions}` : ''}`
+      })
+      .slice(0, 4)
+
+    return {
+      key: group.key,
+      side,
+      sourceX,
+      sourceY,
+      width: side === 'top' || side === 'bottom' ? topWidth : sideWidth,
+      height: side === 'top' || side === 'bottom' ? topHeight : sideHeight,
+      left: 0,
+      top: 0,
+      targetX: 0,
+      targetY: 0,
+      title,
+      lines,
+      selectionKey,
+      isSelected,
+    }
+  })
+
+  placeCalloutsOnSide(provisional, 'left', { axisStart: 6, axisEnd: 94, fixedCoord: 1, axis: 'y' })
+  placeCalloutsOnSide(provisional, 'right', { axisStart: 6, axisEnd: 94, fixedCoord: 70, axis: 'y' })
+  placeCalloutsOnSide(provisional, 'top', { axisStart: 4, axisEnd: 96, fixedCoord: 1, axis: 'x' })
+  placeCalloutsOnSide(provisional, 'bottom', { axisStart: 4, axisEnd: 96, fixedCoord: 90, axis: 'x' })
+
+  return provisional
+}
+
+function placeCalloutsOnSide(
+  callouts: PreviewCallout[],
+  side: PreviewCallout['side'],
+  config: { axisStart: number; axisEnd: number; fixedCoord: number; axis: 'x' | 'y' },
+): void {
+  const onSide = callouts.filter((callout) => callout.side === side)
+  if (onSide.length === 0) {
+    return
+  }
+
+  const sorted = onSide.sort((a, b) =>
+    config.axis === 'y' ? a.sourceY - b.sourceY : a.sourceX - b.sourceX,
+  )
+  const centers = distributeCenters(sorted.length, config.axisStart, config.axisEnd)
+
+  sorted.forEach((callout, index) => {
+    if (config.axis === 'y') {
+      callout.left = config.fixedCoord
+      callout.top = clamp(centers[index] - callout.height / 2, 1, 100 - callout.height - 1)
+      if (side === 'left') {
+        callout.targetX = callout.left + callout.width
+      } else {
+        callout.targetX = callout.left
+      }
+      callout.targetY = callout.top + callout.height / 2
+      return
+    }
+
+    callout.top = config.fixedCoord
+    callout.left = clamp(centers[index] - callout.width / 2, 1, 100 - callout.width - 1)
+    if (side === 'top') {
+      callout.targetY = callout.top + callout.height
+    } else {
+      callout.targetY = callout.top
+    }
+    callout.targetX = callout.left + callout.width / 2
+  })
+}
+
+function distributeCenters(count: number, start: number, end: number): number[] {
+  if (count <= 1) {
+    return [(start + end) / 2]
+  }
+
+  const gap = (end - start) / (count + 1)
+  const centers: number[] = []
+  for (let index = 0; index < count; index += 1) {
+    centers.push(start + gap * (index + 1))
+  }
+  return centers
+}
+
+function pickCalloutSide(x: number, y: number): PreviewCallout['side'] {
+  if (y <= 17) {
+    return 'top'
+  }
+  if (y >= 86) {
+    return 'bottom'
+  }
+  if (x <= 50) {
+    return 'left'
+  }
+  return 'right'
+}
+
+function summarizeActions(actions: string[], max: number): string {
+  if (actions.length === 0) {
+    return ''
+  }
+
+  if (actions.length <= max) {
+    return actions.join(' | ')
+  }
+
+  const displayed = actions.slice(0, max).join(' | ')
+  return `${displayed} (+${actions.length - max})`
+}
+
+function directionSortRank(direction: DirectionTag | null): string {
+  if (direction === 'left') {
+    return '1'
+  }
+  if (direction === 'up') {
+    return '2'
+  }
+  if (direction === 'right') {
+    return '3'
+  }
+  if (direction === 'down') {
+    return '4'
+  }
+  if (direction === 'center') {
+    return '5'
+  }
+  return '9'
 }
 
 function directionPickerLabel(direction: DirectionPickerValue): string {
