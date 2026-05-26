@@ -729,7 +729,9 @@ function DevicePanel({
                 const familyKey = makeFamilyFilterKey(family.family)
                 return (
                   <div className="filter-family" key={family.family}>
-                    <label className="filter-check">
+                    <label
+                      className={`filter-check ${selectedFilterSet.has(familyKey) ? 'is-checked' : ''}`}
+                    >
                       <input
                         type="checkbox"
                         checked={selectedFilterSet.has(familyKey)}
@@ -741,7 +743,10 @@ function DevicePanel({
                       {family.maps.map((mapLabel) => {
                         const mapKey = makeMapFilterKey(mapLabel)
                         return (
-                          <label className="filter-check map" key={mapLabel}>
+                          <label
+                            className={`filter-check map ${selectedFilterSet.has(mapKey) ? 'is-checked' : ''}`}
+                            key={mapLabel}
+                          >
                             <input
                               type="checkbox"
                               checked={selectedFilterSet.has(mapKey)}
@@ -766,7 +771,7 @@ function DevicePanel({
       {joystickId ? (
         <>
           <div
-            className={`device-canvas ${editorEnabled ? 'editor-active' : ''}`}
+            className={`device-canvas ${editorEnabled ? 'editor-active' : 'preview-active'}`}
             onPointerDown={beginDraw}
             onPointerMove={updateDraw}
             onPointerUp={finishDraw}
@@ -1189,10 +1194,10 @@ function buildPreviewCallouts(
   directionOverrides: Record<string, DirectionTag>,
   editControlKey: string,
 ): PreviewCallout[] {
-  const sideWidth = 29
-  const topWidth = 24
-  const sideHeight = 10
-  const topHeight = 9
+  const sideWidth = 26
+  const topWidth = 20
+  const sideHeight = 9
+  const topHeight = 8.5
 
   const provisional = zoneGroups.map((group) => {
     const sourceX = clamp(group.zone.x + group.zone.width / 2, 0, 100)
@@ -1242,12 +1247,38 @@ function buildPreviewCallouts(
     }
   })
 
+  resizeCalloutsForSide(provisional, 'left', { available: 88, preferred: sideHeight, min: 5.4, kind: 'height' })
+  resizeCalloutsForSide(provisional, 'right', { available: 88, preferred: sideHeight, min: 5.4, kind: 'height' })
+  resizeCalloutsForSide(provisional, 'top', { available: 92, preferred: topWidth, min: 12, kind: 'width' })
+  resizeCalloutsForSide(provisional, 'bottom', { available: 92, preferred: topWidth, min: 12, kind: 'width' })
+
   placeCalloutsOnSide(provisional, 'left', { axisStart: 6, axisEnd: 94, fixedCoord: 1, axis: 'y' })
-  placeCalloutsOnSide(provisional, 'right', { axisStart: 6, axisEnd: 94, fixedCoord: 70, axis: 'y' })
+  placeCalloutsOnSide(provisional, 'right', { axisStart: 6, axisEnd: 94, fixedCoord: 73, axis: 'y' })
   placeCalloutsOnSide(provisional, 'top', { axisStart: 4, axisEnd: 96, fixedCoord: 1, axis: 'x' })
   placeCalloutsOnSide(provisional, 'bottom', { axisStart: 4, axisEnd: 96, fixedCoord: 90, axis: 'x' })
 
   return provisional
+}
+
+function resizeCalloutsForSide(
+  callouts: PreviewCallout[],
+  side: PreviewCallout['side'],
+  config: { available: number; preferred: number; min: number; kind: 'width' | 'height' },
+): void {
+  const onSide = callouts.filter((callout) => callout.side === side)
+  if (onSide.length === 0) {
+    return
+  }
+
+  const maxByCount = config.available / onSide.length - 0.8
+  const finalSize = clamp(Math.min(config.preferred, maxByCount), config.min, config.preferred)
+  for (const callout of onSide) {
+    if (config.kind === 'width') {
+      callout.width = finalSize
+      continue
+    }
+    callout.height = finalSize
+  }
 }
 
 function placeCalloutsOnSide(

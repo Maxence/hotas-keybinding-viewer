@@ -339,6 +339,21 @@
   gap: 0.42rem;
   color: var(--ink-soft);
   font-size: 0.84rem;
+  border: 1px solid rgba(120, 142, 150, 0.42);
+  border-radius: 0.38rem;
+  padding: 0.3rem 0.42rem;
+  background: rgba(10, 13, 15, 0.86);
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.filter-check:hover {
+  border-color: rgba(152, 198, 206, 0.58);
+  background: rgba(13, 17, 20, 0.92);
+}
+
+.filter-check.is-checked {
+  border-color: rgba(151, 209, 218, 0.75);
+  background: linear-gradient(165deg, rgba(16, 24, 28, 0.94), rgba(10, 15, 18, 0.94));
 }
 
 .filter-check input {
@@ -377,6 +392,9 @@
 
 .filter-check.map {
   font-size: 0.78rem;
+  border-style: dashed;
+  border-color: rgba(106, 124, 131, 0.44);
+  background: rgba(10, 12, 15, 0.76);
 }
 
 .device-canvas {
@@ -419,6 +437,14 @@
   pointer-events: none;
   -webkit-user-drag: none;
   user-select: none;
+}
+
+.device-canvas.preview-active img {
+  width: 66%;
+  height: 78%;
+  margin: 14% auto 8%;
+  object-fit: contain;
+  object-position: center bottom;
 }
 
 .zone-hitbox {
