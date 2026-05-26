@@ -158,3 +158,4 @@ After each functional change:
 - Tuned UI to a cleaner dark palette with less blue dominance
 - Replaced point editor with rectangle-based per-button zone editor
 - Fixed editor interaction: image dragging is now disabled in editor mode to allow click-drag zone drawing
+- Hardened drag prevention (`dragstart` blocked on canvas/image) and editor hint when no control is selected

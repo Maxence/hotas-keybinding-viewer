@@ -307,11 +307,15 @@ function DevicePanel({
   const unmappedControls = controls.filter((controlKey) => mergedZones[controlKey] === undefined)
 
   const beginDraw = (event: ReactMouseEvent<HTMLDivElement>) => {
-    if (!editorEnabled || !editControlKey || event.button !== 0) {
+    if (!editorEnabled || event.button !== 0) {
       return
     }
 
     event.preventDefault()
+    if (!editControlKey) {
+      return
+    }
+
     const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
     setDragStart(point)
     setDraftZone({
@@ -378,6 +382,7 @@ function DevicePanel({
             onMouseMove={updateDraw}
             onMouseUp={finishDraw}
             onMouseLeave={finishDraw}
+            onDragStart={(event) => event.preventDefault()}
             role={editorEnabled ? 'button' : undefined}
             tabIndex={editorEnabled ? 0 : -1}
           >
@@ -385,6 +390,7 @@ function DevicePanel({
               src={selectedAngle.imagePath}
               alt={`${title} ${selectedAngle.label}`}
               draggable={false}
+              onDragStart={(event) => event.preventDefault()}
             />
             {mappedControls.map((controlKey) => {
               const zone = mergedZones[controlKey]
@@ -472,6 +478,7 @@ function DevicePanel({
                 Zone editor: select a control in the list, then click + drag on image to draw a
                 rectangle zone.
               </p>
+              {!editControlKey && <p className="editor-warning">No control selected yet.</p>}
               <div className="editor-actions">
                 <button
                   type="button"

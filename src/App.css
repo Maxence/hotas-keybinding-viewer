@@ -265,6 +265,8 @@
 
 .device-canvas.editor-active {
   cursor: crosshair;
+  user-select: none;
+  touch-action: none;
 }
 
 .device-canvas.editor-active img {
@@ -474,6 +476,11 @@
 .editor-bar p {
   margin: 0 0 0.5rem;
   color: var(--ink-soft);
+}
+
+.editor-warning {
+  color: #d8c8a1;
+  font-style: italic;
 }
 
 .editor-actions {
