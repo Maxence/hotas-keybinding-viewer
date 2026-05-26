@@ -100,14 +100,34 @@ Current method:
 - Some additional angle images include printed callouts/text in source marketing visuals
 - If XML includes unusual input patterns, normalization may need extension
 
-## 8) Maintenance Rule
+## 8) Deployment (GitHub Pages)
+
+The project includes a Pages workflow:
+- `.github/workflows/deploy-pages.yml`
+
+Build strategy:
+- Vite build output from `npm run build`
+- Artifact upload from `dist/`
+- GitHub Pages deploy action
+
+Base path handling:
+- `vite.config.ts` reads `process.env.VITE_BASE_PATH` and defaults to `/`
+- CI sets `VITE_BASE_PATH=/<repo-name>/` for project pages URLs
+
+Manual setup on GitHub:
+1. Open repository settings
+2. Go to `Pages`
+3. Set source to `GitHub Actions`
+4. Push to `main` (or rerun workflow manually)
+
+## 9) Maintenance Rule
 
 After each functional change:
 1. Update this documentation file in the same commit
 2. Mention new commands/files/state keys if any
 3. Run `npm run lint` and `npm run build`
 
-## 9) Change Log
+## 10) Change Log
 
 ### 2026-05-26
 
@@ -119,3 +139,5 @@ After each functional change:
 - Added hotspot editor and LocalStorage persistence
 - Added asset generation script for cutouts and reference angles
 - Added/updated project documentation and README
+- Added GitHub Pages deployment workflow
+- Added Vite base path env support for project-pages URLs

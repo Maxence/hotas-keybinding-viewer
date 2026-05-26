@@ -39,6 +39,18 @@ Ce script:
 - détoure les vues principales throttle + joystick (PNG transparents)
 - copie des vues d'angles supplémentaires (WebP)
 
+## Déploiement GitHub Pages
+
+Le repo est prêt pour un déploiement automatique via GitHub Actions.
+
+1. Pousser la branche `main` sur GitHub
+2. Dans GitHub: `Settings -> Pages`
+3. Dans `Build and deployment`, choisir `Source: GitHub Actions`
+4. Le workflow `.github/workflows/deploy-pages.yml` publiera automatiquement `dist/`
+
+URL finale attendue:
+- `https://<ton-user>.github.io/hotas-keybinding-viewer/`
+
 ## Documentation interne
 
 La doc technique maintenue est ici:
