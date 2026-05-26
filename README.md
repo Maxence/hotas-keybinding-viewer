@@ -57,3 +57,8 @@ URL finale attendue:
 La doc technique maintenue est ici:
 
 - `docs/PROJECT_DOCUMENTATION.md`
+
+## Notes récentes
+
+- Correction des chemins d'assets pour GitHub Pages (`BASE_URL`) afin d'éviter les `404` sur les images.
+- Nouveau thème visuel sombre/HUD inspiré interface spatiale (Star Citizen style).

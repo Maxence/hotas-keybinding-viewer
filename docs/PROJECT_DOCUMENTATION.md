@@ -93,6 +93,7 @@ Current method:
 - Left panel = throttle, right panel = joystick (when assigned)
 - Tooltips contain readable action labels in English
 - Unmapped controls are clearly listed so placement can be completed in editor
+- Theme is now dark sci-fi HUD style (cyan neon accents, space background, angular panel language)
 
 ## 7) Known Limitations
 
@@ -112,6 +113,7 @@ Build strategy:
 Base path handling:
 - `vite.config.ts` reads `process.env.VITE_BASE_PATH` and defaults to `/`
 - CI sets `VITE_BASE_PATH=/<repo-name>/` for project pages URLs
+- Device image paths in app data are resolved from `import.meta.env.BASE_URL` to avoid GitHub Pages 404s
 
 Manual setup on GitHub:
 1. Open repository settings
@@ -142,3 +144,5 @@ After each functional change:
 - Added GitHub Pages deployment workflow
 - Added Vite base path env support for project-pages URLs
 - Switched Pages deployment strategy to `gh-pages` branch publication for easier bootstrap
+- Fixed static image path resolution for project-pages subpath deployments
+- Reworked UI skin to dark space/HUD visual style

@@ -1,10 +1,12 @@
 import type { AngleView } from '../types'
 
+const withBase = (path: string): string => `${import.meta.env.BASE_URL}${path}`
+
 export const THROTTLE_ANGLES: AngleView[] = [
   {
     id: 'main',
     label: 'Main Cutout',
-    imagePath: '/assets/devices/throttle/throttle-main.png',
+    imagePath: withBase('assets/devices/throttle/throttle-main.png'),
     hotspotDefaults: {
       slider1: { x: 27, y: 47 },
       button1: { x: 78, y: 53 },
@@ -19,7 +21,7 @@ export const THROTTLE_ANGLES: AngleView[] = [
   {
     id: 'top',
     label: 'Top Reference',
-    imagePath: '/assets/devices/throttle/throttle-angle-top.webp',
+    imagePath: withBase('assets/devices/throttle/throttle-angle-top.webp'),
     hotspotDefaults: {},
   },
 ]
@@ -28,7 +30,7 @@ export const JOYSTICK_ANGLES: AngleView[] = [
   {
     id: 'main',
     label: 'Main Cutout',
-    imagePath: '/assets/devices/joystick/joystick-main.png',
+    imagePath: withBase('assets/devices/joystick/joystick-main.png'),
     hotspotDefaults: {
       x: { x: 53, y: 59 },
       y: { x: 53, y: 53 },
@@ -52,7 +54,7 @@ export const JOYSTICK_ANGLES: AngleView[] = [
   {
     id: 'base-top',
     label: 'Base Top Reference',
-    imagePath: '/assets/devices/joystick/joystick-angle-base-top.webp',
+    imagePath: withBase('assets/devices/joystick/joystick-angle-base-top.webp'),
     hotspotDefaults: {
       button5: { x: 30, y: 47 },
       button6: { x: 37, y: 47 },
@@ -67,7 +69,7 @@ export const JOYSTICK_ANGLES: AngleView[] = [
   {
     id: 'grip',
     label: 'Grip Reference',
-    imagePath: '/assets/devices/joystick/joystick-angle-grip.webp',
+    imagePath: withBase('assets/devices/joystick/joystick-angle-grip.webp'),
     hotspotDefaults: {},
   },
 ]
