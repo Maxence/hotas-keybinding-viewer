@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --ink: #13212f;
+  --ink-soft: #355062;
+  --ink-faint: #5f7a8d;
+  --bg: #f4f9fc;
+  --panel-bg: #fdfeff;
+  --panel-border: #d4e5ef;
+  --panel-border-strong: #afc6d6;
+  --chip-bg: #edf5fa;
+  --accent: #146f9f;
+  --danger: #b33a2f;
+  --soft-shadow: 0 12px 26px rgba(14, 44, 65, 0.08);
+
+  --sans: 'Sora', 'Trebuchet MS', sans-serif;
+  --mono: 'JetBrains Mono', 'Consolas', monospace;
+
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 500px at 5% -5%, rgba(165, 208, 238, 0.38), transparent),
+    radial-gradient(1000px 450px at 95% 0%, rgba(170, 238, 205, 0.33), transparent),
+    var(--bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
