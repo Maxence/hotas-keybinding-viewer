@@ -311,6 +311,7 @@ function DevicePanel({
       return
     }
 
+    event.preventDefault()
     const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
     setDragStart(point)
     setDraftZone({
@@ -380,7 +381,11 @@ function DevicePanel({
             role={editorEnabled ? 'button' : undefined}
             tabIndex={editorEnabled ? 0 : -1}
           >
-            <img src={selectedAngle.imagePath} alt={`${title} ${selectedAngle.label}`} />
+            <img
+              src={selectedAngle.imagePath}
+              alt={`${title} ${selectedAngle.label}`}
+              draggable={false}
+            />
             {mappedControls.map((controlKey) => {
               const zone = mergedZones[controlKey]
               const controlBindings = bindingsByControl.get(controlKey) ?? []

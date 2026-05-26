@@ -157,3 +157,4 @@ After each functional change:
 - Replaced app visual assets with `joydesign` image set and new angle crops
 - Tuned UI to a cleaner dark palette with less blue dominance
 - Replaced point editor with rectangle-based per-button zone editor
+- Fixed editor interaction: image dragging is now disabled in editor mode to allow click-drag zone drawing

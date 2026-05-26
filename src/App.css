@@ -267,6 +267,12 @@
   cursor: crosshair;
 }
 
+.device-canvas.editor-active img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 .zone-hitbox {
   position: absolute;
   border: none;
