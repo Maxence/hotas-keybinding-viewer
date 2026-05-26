@@ -1,18 +1,21 @@
-import type { ControlZone, DeviceKind } from '../types'
+import type { ControlZone, DeviceKind, DirectionTag } from '../types'
 
 const ZONES_STORAGE_KEY = 'hotas-viewer.zones.v2'
+const DIRECTION_STORAGE_KEY = 'hotas-viewer.zone-directions.v1'
 const LEGACY_HOTSPOTS_STORAGE_KEY = 'hotas-viewer.hotspots.v1'
-const ZONES_EXPORT_SCHEMA = 'hotas-zone-overrides'
-const ZONES_EXPORT_VERSION = 1
+const ZONES_EXPORT_SCHEMA = 'hotas-zone-data'
+const ZONES_EXPORT_VERSION = 2
 
 type LegacyPoint = { x: number; y: number }
 type LegacyOverrides = Record<string, Record<string, LegacyPoint>>
 
 export type HotspotOverrides = Record<string, Record<string, ControlZone>>
+export type DirectionOverrides = Record<string, Record<string, DirectionTag>>
 export interface HotspotExportPayload {
   schema: string
   version: number
   overrides: HotspotOverrides
+  directionOverrides: DirectionOverrides
 }
 
 function storageKey(deviceKind: DeviceKind, angleId: string): string {
@@ -45,6 +48,24 @@ export function writeHotspotOverrides(overrides: HotspotOverrides): void {
   window.localStorage.setItem(ZONES_STORAGE_KEY, JSON.stringify(overrides))
 }
 
+export function readDirectionOverrides(): DirectionOverrides {
+  try {
+    const raw = window.localStorage.getItem(DIRECTION_STORAGE_KEY)
+    if (!raw) {
+      return {}
+    }
+
+    const parsed = JSON.parse(raw) as unknown
+    return sanitizeDirectionOverrides(parsed)
+  } catch {
+    return {}
+  }
+}
+
+export function writeDirectionOverrides(overrides: DirectionOverrides): void {
+  window.localStorage.setItem(DIRECTION_STORAGE_KEY, JSON.stringify(overrides))
+}
+
 export function mergeHotspotOverrides(
   base: HotspotOverrides,
   overrides: HotspotOverrides,
@@ -73,6 +94,34 @@ export function cloneHotspotOverrides(overrides: HotspotOverrides): HotspotOverr
   return next
 }
 
+export function mergeDirectionOverrides(
+  base: DirectionOverrides,
+  overrides: DirectionOverrides,
+): DirectionOverrides {
+  const next: DirectionOverrides = {}
+
+  for (const [mapKey, controls] of Object.entries(base)) {
+    next[mapKey] = { ...controls }
+  }
+
+  for (const [mapKey, controls] of Object.entries(overrides)) {
+    next[mapKey] = {
+      ...(next[mapKey] ?? {}),
+      ...controls,
+    }
+  }
+
+  return next
+}
+
+export function cloneDirectionOverrides(overrides: DirectionOverrides): DirectionOverrides {
+  const next: DirectionOverrides = {}
+  for (const [mapKey, controls] of Object.entries(overrides)) {
+    next[mapKey] = { ...controls }
+  }
+  return next
+}
+
 export function countHotspotZones(overrides: HotspotOverrides): number {
   let total = 0
   for (const controls of Object.values(overrides)) {
@@ -81,28 +130,35 @@ export function countHotspotZones(overrides: HotspotOverrides): number {
   return total
 }
 
-export function serializeHotspotOverrides(overrides: HotspotOverrides): string {
+export function serializeZoneData(
+  overrides: HotspotOverrides,
+  directionOverrides: DirectionOverrides,
+): string {
   const payload: HotspotExportPayload = {
     schema: ZONES_EXPORT_SCHEMA,
     version: ZONES_EXPORT_VERSION,
     overrides,
+    directionOverrides,
   }
   return JSON.stringify(payload, null, 2)
 }
 
-export function parseHotspotOverridesJson(raw: string): HotspotOverrides {
+export function parseZoneDataJson(raw: string): {
+  overrides: HotspotOverrides
+  directionOverrides: DirectionOverrides
+} {
   const parsed = JSON.parse(raw) as unknown
   if (!isRecord(parsed)) {
     throw new Error('Invalid JSON format: expected an object.')
   }
 
-  let candidate: unknown = parsed
+  const candidateOverrides = 'overrides' in parsed ? parsed.overrides : parsed
+  const candidateDirections = 'directionOverrides' in parsed ? parsed.directionOverrides : {}
 
-  if ('overrides' in parsed) {
-    candidate = parsed.overrides
+  return {
+    overrides: sanitizeHotspotOverrides(candidateOverrides),
+    directionOverrides: sanitizeDirectionOverrides(candidateDirections),
   }
-
-  return sanitizeHotspotOverrides(candidate)
 }
 
 export function getHotspotMap(
@@ -174,6 +230,75 @@ export function clearAngleHotspots(
   }
 }
 
+export function getDirectionMap(
+  overrides: DirectionOverrides,
+  deviceKind: DeviceKind,
+  angleId: string,
+): Record<string, DirectionTag> {
+  if (deviceKind === 'none') {
+    return {}
+  }
+
+  return overrides[storageKey(deviceKind, angleId)] ?? {}
+}
+
+export function setDirection(
+  overrides: DirectionOverrides,
+  deviceKind: DeviceKind,
+  angleId: string,
+  controlKey: string,
+  direction: DirectionTag,
+): DirectionOverrides {
+  if (deviceKind === 'none') {
+    return overrides
+  }
+
+  const mapKey = storageKey(deviceKind, angleId)
+  return {
+    ...overrides,
+    [mapKey]: {
+      ...(overrides[mapKey] ?? {}),
+      [controlKey]: direction,
+    },
+  }
+}
+
+export function removeDirection(
+  overrides: DirectionOverrides,
+  deviceKind: DeviceKind,
+  angleId: string,
+  controlKey: string,
+): DirectionOverrides {
+  if (deviceKind === 'none') {
+    return overrides
+  }
+
+  const mapKey = storageKey(deviceKind, angleId)
+  const currentMap = { ...(overrides[mapKey] ?? {}) }
+  delete currentMap[controlKey]
+
+  return {
+    ...overrides,
+    [mapKey]: currentMap,
+  }
+}
+
+export function clearAngleDirections(
+  overrides: DirectionOverrides,
+  deviceKind: DeviceKind,
+  angleId: string,
+): DirectionOverrides {
+  if (deviceKind === 'none') {
+    return overrides
+  }
+
+  const mapKey = storageKey(deviceKind, angleId)
+  return {
+    ...overrides,
+    [mapKey]: {},
+  }
+}
+
 function migrateLegacyHotspots(legacy: LegacyOverrides): HotspotOverrides {
   const next: HotspotOverrides = {}
   for (const [angleKey, controls] of Object.entries(legacy ?? {})) {
@@ -231,6 +356,29 @@ function sanitizeHotspotOverrides(raw: unknown): HotspotOverrides {
   return next
 }
 
+function sanitizeDirectionOverrides(raw: unknown): DirectionOverrides {
+  if (!isRecord(raw)) {
+    return {}
+  }
+
+  const next: DirectionOverrides = {}
+  for (const [mapKey, controls] of Object.entries(raw)) {
+    if (!isRecord(controls)) {
+      continue
+    }
+
+    next[mapKey] = {}
+    for (const [controlKey, value] of Object.entries(controls)) {
+      if (!isDirectionTag(value)) {
+        continue
+      }
+      next[mapKey][controlKey] = value
+    }
+  }
+
+  return next
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -243,4 +391,14 @@ function toFiniteNumber(value: unknown): number | null {
     return null
   }
   return value
+}
+
+function isDirectionTag(value: unknown): value is DirectionTag {
+  return (
+    value === 'center' ||
+    value === 'up' ||
+    value === 'down' ||
+    value === 'left' ||
+    value === 'right'
+  )
 }

@@ -24,6 +24,8 @@ export interface ControlZone {
   height: number
 }
 
+export type DirectionTag = 'center' | 'up' | 'down' | 'left' | 'right'
+
 export interface AngleView {
   id: string
   label: string

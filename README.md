@@ -52,6 +52,25 @@ Pour placer précisément les actions sur les boutons:
 
 Les zones sont sauvegardées automatiquement en local (`localStorage`).
 
+### Zone multi-boutons (HAT / POV)
+
+Tu peux maintenant associer plusieurs contrôles à **une seule zone physique**:
+
+1. Sélectionner un contrôle et dessiner sa zone
+2. Dans l'éditeur, utiliser `Link another control to this same zone`
+3. Choisir un autre contrôle, puis sa direction:
+   - `Center`
+   - `Up`
+   - `Down`
+   - `Left`
+   - `Right`
+   - ou `Auto` (déduit de `hatX_up`, `povY_left`, etc.)
+4. Cliquer `Link control to zone`
+
+Cas pris en charge:
+- HAT complet (`up/down/left/right` + éventuellement `center`)
+- HAT partiel (ex: seulement `up/down/center`)
+
 ### Sauvegarde et partage des zones
 
 Dans le panneau `Profile & Device Assignment`:

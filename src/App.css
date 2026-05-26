@@ -528,6 +528,46 @@
   font-style: italic;
 }
 
+.multi-zone-tools {
+  margin-bottom: 0.68rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.tool-label {
+  display: grid;
+  gap: 0.22rem;
+  font-size: 0.72rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-faint);
+}
+
+.tool-label select {
+  border: 1px solid var(--line-strong);
+  border-radius: 0.42rem;
+  padding: 0.42rem 0.48rem;
+  background: #0f1114;
+  color: var(--ink);
+  font: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tool-hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
 .editor-actions {
   display: flex;
   gap: 0.5rem;

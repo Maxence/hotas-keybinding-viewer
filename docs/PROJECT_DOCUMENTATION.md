@@ -30,6 +30,7 @@ Core requirements implemented:
   - Human-readable English labels (category + action + control)
 - `src/lib/hotspots.ts`
   - LocalStorage persistence for hotspot overrides
+  - LocalStorage persistence for optional per-control direction tags
   - CRUD helpers for per-angle hotspots
 - JSON export/import helpers for zone sharing
 - `src/data/deviceProfiles.ts`
@@ -37,6 +38,8 @@ Core requirements implemented:
   - Default hotspot coordinates (seed values)
 - `src/data/defaultZones.ts`
   - Bundled project-wide default zone overrides
+- `src/data/defaultZoneDirections.ts`
+  - Bundled project-wide default direction tags (`center/up/down/left/right`)
 - `src/types.ts`
   - Shared type definitions
 
@@ -62,6 +65,7 @@ Zones are resolved as:
 
 Storage key:
 - `hotas-viewer.zones.v2`
+- `hotas-viewer.zone-directions.v1`
 
 Per-angle key format:
 - `throttle:<angleId>`
@@ -72,9 +76,15 @@ Editor mode:
 - Select a control in the control list
 - Click + drag on image to draw a rectangle zone
 - Remove selected zone or clear all zones on current angle
+- Assign explicit direction tag to selected control (`center/up/down/left/right`)
+- Link additional controls to the same zone rectangle for HAT/POV grouping
 - Export full zones data as JSON
 - Import zones JSON to restore/share a zone set
 - Reset local zones to bundled defaults
+
+Zone grouping behavior:
+- If multiple controls share identical zone geometry, UI renders one zone box and one tooltip.
+- Tooltip lists each linked control with its resolved direction and actions.
 
 Legacy migration:
 - If `hotas-viewer.zones.v2` is missing, the app tries to migrate old point-based data from `hotas-viewer.hotspots.v1`.
@@ -194,3 +204,5 @@ After each functional change:
 - Added zone data toolbox (export/import/reset) to persist and share manual mappings
 - Added bundled default zones entrypoint (`src/data/defaultZones.ts`) merged with local overrides
 - Added troubleshooting note for swapped joystick order (`i_DumpDeviceInformation` + `pp_resortdevices`)
+- Added multi-control shared-zone workflow with optional direction tags (`center/up/down/left/right`)
+- Added grouped rendering for overlapping zones (one tooltip per physical zone)

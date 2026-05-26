@@ -1,20 +1,30 @@
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { DEFAULT_DIRECTION_OVERRIDES } from './data/defaultZoneDirections'
 import { DEFAULT_ZONE_OVERRIDES } from './data/defaultZones'
 import { JOYSTICK_ANGLES, THROTTLE_ANGLES } from './data/deviceProfiles'
 import { parseBindingsXml } from './lib/bindings'
 import {
+  clearAngleDirections,
+  cloneDirectionOverrides,
   cloneHotspotOverrides,
   countHotspotZones,
   clearAngleHotspots,
+  getDirectionMap,
   getHotspotMap,
+  mergeDirectionOverrides,
   mergeHotspotOverrides,
-  parseHotspotOverridesJson,
+  parseZoneDataJson,
+  readDirectionOverrides,
   readHotspotOverrides,
+  removeDirection,
   removeHotspot,
+  serializeZoneData,
+  setDirection,
   setHotspot,
-  serializeHotspotOverrides,
+  writeDirectionOverrides,
   writeHotspotOverrides,
+  type DirectionOverrides,
   type HotspotOverrides,
 } from './lib/hotspots'
 import type {
@@ -22,6 +32,7 @@ import type {
   BindingRecord,
   ControlZone,
   DeviceKind,
+  DirectionTag,
   ParsedProfile,
 } from './types'
 import './App.css'
@@ -29,10 +40,17 @@ import './App.css'
 type DeviceAssignment = Record<number, DeviceKind>
 type DrawPoint = { x: number; y: number }
 type ZoneDataStatusTone = 'info' | 'error'
+type DirectionPickerValue = 'auto' | DirectionTag
 
 interface ZoneDataStatus {
   tone: ZoneDataStatusTone
   message: string
+}
+
+interface RenderZoneGroup {
+  key: string
+  zone: ControlZone
+  controlKeys: string[]
 }
 
 function App() {
@@ -46,6 +64,10 @@ function App() {
   const [throttleEditControlKey, setThrottleEditControlKey] = useState<string>('')
   const [joystickEditControlKey, setJoystickEditControlKey] = useState<string>('')
   const [zoneDataStatus, setZoneDataStatus] = useState<ZoneDataStatus | null>(null)
+  const [directionOverrides, setDirectionOverrides] = useState<DirectionOverrides>(() => {
+    const localDirections = readDirectionOverrides()
+    return mergeDirectionOverrides(DEFAULT_DIRECTION_OVERRIDES, localDirections)
+  })
   const [hotspotOverrides, setHotspotOverrides] = useState<HotspotOverrides>(() => {
     const localOverrides = readHotspotOverrides()
     return mergeHotspotOverrides(DEFAULT_ZONE_OVERRIDES, localOverrides)
@@ -54,6 +76,10 @@ function App() {
   useEffect(() => {
     writeHotspotOverrides(hotspotOverrides)
   }, [hotspotOverrides])
+
+  useEffect(() => {
+    writeDirectionOverrides(directionOverrides)
+  }, [directionOverrides])
 
   const bindingsByJoystick = useMemo(() => {
     const map = new Map<number, BindingRecord[]>()
@@ -138,14 +164,29 @@ function App() {
 
   const handleRemoveZone = (deviceKind: DeviceKind, angleId: string, controlKey: string) => {
     setHotspotOverrides((current) => removeHotspot(current, deviceKind, angleId, controlKey))
+    setDirectionOverrides((current) => removeDirection(current, deviceKind, angleId, controlKey))
+  }
+
+  const handleSetDirection = (
+    deviceKind: DeviceKind,
+    angleId: string,
+    controlKey: string,
+    direction: DirectionTag,
+  ) => {
+    setDirectionOverrides((current) => setDirection(current, deviceKind, angleId, controlKey, direction))
+  }
+
+  const handleRemoveDirection = (deviceKind: DeviceKind, angleId: string, controlKey: string) => {
+    setDirectionOverrides((current) => removeDirection(current, deviceKind, angleId, controlKey))
   }
 
   const handleResetAngleZones = (deviceKind: DeviceKind, angleId: string) => {
     setHotspotOverrides((current) => clearAngleHotspots(current, deviceKind, angleId))
+    setDirectionOverrides((current) => clearAngleDirections(current, deviceKind, angleId))
   }
 
   const handleExportZones = () => {
-    const payload = serializeHotspotOverrides(hotspotOverrides)
+    const payload = serializeZoneData(hotspotOverrides, directionOverrides)
     const blob = new Blob([payload], { type: 'application/json' })
     const exportUrl = URL.createObjectURL(blob)
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
@@ -170,11 +211,14 @@ function App() {
 
     try {
       const fileText = await file.text()
-      const importedOverrides = parseHotspotOverridesJson(fileText)
-      setHotspotOverrides(mergeHotspotOverrides(DEFAULT_ZONE_OVERRIDES, importedOverrides))
+      const imported = parseZoneDataJson(fileText)
+      setHotspotOverrides(mergeHotspotOverrides(DEFAULT_ZONE_OVERRIDES, imported.overrides))
+      setDirectionOverrides(
+        mergeDirectionOverrides(DEFAULT_DIRECTION_OVERRIDES, imported.directionOverrides),
+      )
       setZoneDataStatus({
         tone: 'info',
-        message: `Imported ${countHotspotZones(importedOverrides)} zones from ${file.name}.`,
+        message: `Imported ${countHotspotZones(imported.overrides)} zones from ${file.name}.`,
       })
     } catch (error) {
       const message =
@@ -190,6 +234,7 @@ function App() {
 
   const handleResetLocalZones = () => {
     setHotspotOverrides(cloneHotspotOverrides(DEFAULT_ZONE_OVERRIDES))
+    setDirectionOverrides(cloneDirectionOverrides(DEFAULT_DIRECTION_OVERRIDES))
     setZoneDataStatus({
       tone: 'info',
       message: 'Local edits cleared. Only bundled default zones are active now.',
@@ -291,8 +336,11 @@ function App() {
               editControlKey={throttleEditControlKey}
               onEditControlKeyChange={setThrottleEditControlKey}
               hotspotOverrides={hotspotOverrides}
+              directionOverrides={directionOverrides}
               onPlaceZone={handlePlaceZone}
               onRemoveZone={handleRemoveZone}
+              onSetDirection={handleSetDirection}
+              onRemoveDirection={handleRemoveDirection}
               onResetAngleZones={handleResetAngleZones}
             />
             <DevicePanel
@@ -307,8 +355,11 @@ function App() {
               editControlKey={joystickEditControlKey}
               onEditControlKeyChange={setJoystickEditControlKey}
               hotspotOverrides={hotspotOverrides}
+              directionOverrides={directionOverrides}
               onPlaceZone={handlePlaceZone}
               onRemoveZone={handleRemoveZone}
+              onSetDirection={handleSetDirection}
+              onRemoveDirection={handleRemoveDirection}
               onResetAngleZones={handleResetAngleZones}
             />
           </section>
@@ -340,6 +391,7 @@ interface DevicePanelProps {
   editControlKey: string
   onEditControlKeyChange: (controlKey: string) => void
   hotspotOverrides: HotspotOverrides
+  directionOverrides: DirectionOverrides
   onPlaceZone: (
     deviceKind: DeviceKind,
     angleId: string,
@@ -347,6 +399,13 @@ interface DevicePanelProps {
     zone: ControlZone,
   ) => void
   onRemoveZone: (deviceKind: DeviceKind, angleId: string, controlKey: string) => void
+  onSetDirection: (
+    deviceKind: DeviceKind,
+    angleId: string,
+    controlKey: string,
+    direction: DirectionTag,
+  ) => void
+  onRemoveDirection: (deviceKind: DeviceKind, angleId: string, controlKey: string) => void
   onResetAngleZones: (deviceKind: DeviceKind, angleId: string) => void
 }
 
@@ -362,14 +421,23 @@ function DevicePanel({
   editControlKey,
   onEditControlKeyChange,
   hotspotOverrides,
+  directionOverrides,
   onPlaceZone,
   onRemoveZone,
+  onSetDirection,
+  onRemoveDirection,
   onResetAngleZones,
 }: DevicePanelProps) {
   const selectedAngle = angles.find((angle) => angle.id === selectedAngleId) ?? angles[0]
   const overrideZones = getHotspotMap(hotspotOverrides, deviceKind, selectedAngle.id)
-  const mergedZones = { ...selectedAngle.zoneDefaults, ...overrideZones }
+  const overrideDirections = getDirectionMap(directionOverrides, deviceKind, selectedAngle.id)
+  const mergedZones = useMemo(
+    () => ({ ...selectedAngle.zoneDefaults, ...overrideZones }),
+    [selectedAngle.zoneDefaults, overrideZones],
+  )
   const [draftZone, setDraftZone] = useState<ControlZone | null>(null)
+  const [linkTargetControlKey, setLinkTargetControlKey] = useState<string>('')
+  const [linkDirectionValue, setLinkDirectionValue] = useState<DirectionPickerValue>('auto')
   const dragStartRef = useRef<DrawPoint | null>(null)
   const drawingControlKeyRef = useRef<string>('')
 
@@ -395,6 +463,37 @@ function DevicePanel({
   const unmappedControls = controls.filter((controlKey) => mergedZones[controlKey] === undefined)
 
   const activeControlKey = editControlKey || controls[0] || ''
+  const activeZone = activeControlKey ? mergedZones[activeControlKey] : undefined
+  const activeDirectionValue: DirectionPickerValue = activeControlKey
+    ? (overrideDirections[activeControlKey] ?? 'auto')
+    : 'auto'
+
+  const linkedControlsForActive = useMemo(
+    () =>
+      controls.filter((controlKey) => {
+        const zone = mergedZones[controlKey]
+        return zonesEqual(zone, activeZone)
+      }),
+    [controls, mergedZones, activeZone],
+  )
+
+  const linkCandidates = useMemo(
+    () =>
+      controls.filter(
+        (controlKey) =>
+          controlKey !== activeControlKey && !zonesEqual(mergedZones[controlKey], activeZone),
+      ),
+    [controls, activeControlKey, mergedZones, activeZone],
+  )
+
+  const zoneGroups = useMemo(
+    () => buildZoneGroups(mappedControls, mergedZones),
+    [mappedControls, mergedZones],
+  )
+  const effectiveLinkTargetControlKey =
+    linkCandidates.includes(linkTargetControlKey) ?
+      linkTargetControlKey
+    : (linkCandidates[0] ?? '')
 
   const beginDraw = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!editorEnabled || event.button !== 0) {
@@ -462,6 +561,33 @@ function DevicePanel({
     onPlaceZone(deviceKind, selectedAngle.id, controlToSave, zone)
   }
 
+  const handleSelectedDirectionChange = (nextValue: DirectionPickerValue) => {
+    if (!activeControlKey) {
+      return
+    }
+
+    if (nextValue === 'auto') {
+      onRemoveDirection(deviceKind, selectedAngle.id, activeControlKey)
+      return
+    }
+
+    onSetDirection(deviceKind, selectedAngle.id, activeControlKey, nextValue)
+  }
+
+  const handleLinkToActiveZone = () => {
+    if (!activeZone || !activeControlKey || !effectiveLinkTargetControlKey) {
+      return
+    }
+
+    onPlaceZone(deviceKind, selectedAngle.id, effectiveLinkTargetControlKey, activeZone)
+    if (linkDirectionValue === 'auto') {
+      onRemoveDirection(deviceKind, selectedAngle.id, effectiveLinkTargetControlKey)
+      return
+    }
+
+    onSetDirection(deviceKind, selectedAngle.id, effectiveLinkTargetControlKey, linkDirectionValue)
+  }
+
   return (
     <article className="panel device-panel">
       <div className="panel-heading">
@@ -505,34 +631,57 @@ function DevicePanel({
               draggable={false}
               onDragStart={(event) => event.preventDefault()}
             />
-            {mappedControls.map((controlKey) => {
-              const zone = mergedZones[controlKey]
-              const controlBindings = bindingsByControl.get(controlKey) ?? []
-              const actionLabels = uniqueActionLabels(controlBindings)
+            {zoneGroups.map((group) => {
+              const selectionKey = group.controlKeys.includes(editControlKey)
+                ? editControlKey
+                : group.controlKeys[0]
+              const isSelected = editControlKey ? group.controlKeys.includes(editControlKey) : false
 
               return (
                 <button
                   type="button"
-                  className={`zone-hitbox ${controlKey === editControlKey ? 'is-selected' : ''}`}
-                  key={controlKey}
+                  className={`zone-hitbox ${isSelected ? 'is-selected' : ''}`}
+                  key={group.key}
                   style={{
-                    left: `${zone.x}%`,
-                    top: `${zone.y}%`,
-                    width: `${zone.width}%`,
-                    height: `${zone.height}%`,
+                    left: `${group.zone.x}%`,
+                    top: `${group.zone.y}%`,
+                    width: `${group.zone.width}%`,
+                    height: `${group.zone.height}%`,
                   }}
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation()
-                    onEditControlKeyChange(controlKey)
+                    onEditControlKeyChange(selectionKey)
                   }}
                 >
-                  <span className="zone-label">{compactControlLabel(controlKey)}</span>
+                  <span className="zone-label">
+                    {group.controlKeys.length === 1
+                      ? compactControlLabel(group.controlKeys[0])
+                      : buildGroupDirectionLabel(group.controlKeys, overrideDirections)}
+                  </span>
                   <span className="hotspot-tooltip">
-                    <strong>{controlBindings[0]?.controlLabel ?? controlKey}</strong>
-                    {actionLabels.map((label) => (
-                      <span key={label}>{label}</span>
-                    ))}
+                    <strong>
+                      {group.controlKeys.length === 1
+                        ? bindingsByControl.get(group.controlKeys[0])?.[0]?.controlLabel ??
+                          group.controlKeys[0]
+                        : `${group.controlKeys.length} linked controls`}
+                    </strong>
+                    {group.controlKeys.map((controlKey) => {
+                      const controlBindings = bindingsByControl.get(controlKey) ?? []
+                      const actionLabels = uniqueActionLabels(controlBindings)
+                      const direction = resolveDirection(controlKey, overrideDirections)
+                      const directionPrefix = direction
+                        ? `${directionTagLabel(direction)} • `
+                        : ''
+
+                      return (
+                        <span key={controlKey}>
+                          {directionPrefix}
+                          {controlBindings[0]?.controlLabel ?? controlKey}
+                          {actionLabels.length > 0 ? ` — ${actionLabels.join(' | ')}` : ''}
+                        </span>
+                      )
+                    })}
                   </span>
                 </button>
               )
@@ -553,6 +702,9 @@ function DevicePanel({
           <div className="binding-summary">
             <p>
               <strong>{mappedControls.length}</strong> controls with zone
+            </p>
+            <p>
+              <strong>{zoneGroups.length}</strong> distinct zones on this angle
             </p>
             <p>
               <strong>{unmappedControls.length}</strong> controls without zone on this angle
@@ -592,6 +744,93 @@ function DevicePanel({
                 rectangle zone.
               </p>
               {!editControlKey && <p className="editor-warning">No control selected yet.</p>}
+              {!!activeControlKey && (
+                <div className="multi-zone-tools">
+                  <div className="tool-row">
+                    <label className="tool-label">
+                      Selected control direction
+                      <select
+                        value={activeDirectionValue}
+                        onChange={(event) =>
+                          handleSelectedDirectionChange(event.target.value as DirectionPickerValue)
+                        }
+                      >
+                        <option value="auto">Auto from control name</option>
+                        <option value="center">Center</option>
+                        <option value="up">Up</option>
+                        <option value="down">Down</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                    <span className="tool-hint">
+                      Resolved:{' '}
+                      <strong>
+                        {resolveDirection(activeControlKey, overrideDirections)
+                          ? directionTagLabel(resolveDirection(activeControlKey, overrideDirections)!)
+                          : 'None'}
+                      </strong>
+                    </span>
+                  </div>
+
+                  <div className="tool-row">
+                    <label className="tool-label">
+                      Link another control to this same zone
+                      <select
+                        value={effectiveLinkTargetControlKey}
+                        onChange={(event) => setLinkTargetControlKey(event.target.value)}
+                        disabled={!activeZone || linkCandidates.length === 0}
+                      >
+                        {linkCandidates.length === 0 && <option value="">No controls available</option>}
+                        {linkCandidates.map((controlKey) => (
+                          <option key={controlKey} value={controlKey}>
+                            {bindingsByControl.get(controlKey)?.[0]?.controlLabel ?? controlKey}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="tool-label">
+                      Linked control direction
+                      <select
+                        value={linkDirectionValue}
+                        onChange={(event) =>
+                          setLinkDirectionValue(event.target.value as DirectionPickerValue)
+                        }
+                      >
+                        <option value="auto">Auto</option>
+                        <option value="center">Center</option>
+                        <option value="up">Up</option>
+                        <option value="down">Down</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      disabled={!activeZone || !effectiveLinkTargetControlKey}
+                      onClick={handleLinkToActiveZone}
+                    >
+                      Link control to zone
+                    </button>
+                  </div>
+
+                  <p className="tool-hint">
+                    Shared controls on selected zone:{' '}
+                    <strong>
+                      {linkedControlsForActive.length > 0
+                        ? linkedControlsForActive
+                            .map((controlKey) => {
+                              const direction = resolveDirection(controlKey, overrideDirections)
+                              const suffix = direction ? ` (${directionTagLabel(direction)})` : ''
+                              return `${compactControlLabel(controlKey)}${suffix}`
+                            })
+                            .join(', ')
+                        : 'None'}
+                    </strong>
+                  </p>
+                </div>
+              )}
               <div className="editor-actions">
                 <button
                   type="button"
@@ -623,6 +862,127 @@ function DevicePanel({
       )}
     </article>
   )
+}
+
+function buildZoneGroups(
+  mappedControls: string[],
+  mergedZones: Record<string, ControlZone>,
+): RenderZoneGroup[] {
+  const byZone = new Map<string, RenderZoneGroup>()
+
+  for (const controlKey of mappedControls) {
+    const zone = mergedZones[controlKey]
+    if (!zone) {
+      continue
+    }
+
+    const key = `${zone.x.toFixed(4)}:${zone.y.toFixed(4)}:${zone.width.toFixed(4)}:${zone.height.toFixed(4)}`
+    const existing = byZone.get(key)
+    if (existing) {
+      existing.controlKeys.push(controlKey)
+      continue
+    }
+
+    byZone.set(key, {
+      key,
+      zone,
+      controlKeys: [controlKey],
+    })
+  }
+
+  return Array.from(byZone.values())
+}
+
+function zonesEqual(a: ControlZone | undefined, b: ControlZone | undefined): boolean {
+  if (!a || !b) {
+    return false
+  }
+  return (
+    Math.abs(a.x - b.x) < 0.0001 &&
+    Math.abs(a.y - b.y) < 0.0001 &&
+    Math.abs(a.width - b.width) < 0.0001 &&
+    Math.abs(a.height - b.height) < 0.0001
+  )
+}
+
+function resolveDirection(
+  controlKey: string,
+  overrides: Record<string, DirectionTag>,
+): DirectionTag | null {
+  return overrides[controlKey] ?? inferDirectionFromControlKey(controlKey)
+}
+
+function inferDirectionFromControlKey(controlKey: string): DirectionTag | null {
+  if (/_(up)$/i.test(controlKey)) {
+    return 'up'
+  }
+  if (/_(down)$/i.test(controlKey)) {
+    return 'down'
+  }
+  if (/_(left)$/i.test(controlKey)) {
+    return 'left'
+  }
+  if (/_(right)$/i.test(controlKey)) {
+    return 'right'
+  }
+  return null
+}
+
+function directionTagLabel(tag: DirectionTag): string {
+  if (tag === 'center') {
+    return 'Center'
+  }
+  if (tag === 'up') {
+    return 'Up'
+  }
+  if (tag === 'down') {
+    return 'Down'
+  }
+  if (tag === 'left') {
+    return 'Left'
+  }
+  return 'Right'
+}
+
+function directionShort(tag: DirectionTag): string {
+  if (tag === 'center') {
+    return 'C'
+  }
+  if (tag === 'up') {
+    return 'U'
+  }
+  if (tag === 'down') {
+    return 'D'
+  }
+  if (tag === 'left') {
+    return 'L'
+  }
+  return 'R'
+}
+
+function buildGroupDirectionLabel(
+  controlKeys: string[],
+  overrides: Record<string, DirectionTag>,
+): string {
+  if (controlKeys.length === 1) {
+    return compactControlLabel(controlKeys[0])
+  }
+
+  const ordered: DirectionTag[] = ['center', 'up', 'down', 'left', 'right']
+  const tagSet = new Set<DirectionTag>()
+
+  for (const controlKey of controlKeys) {
+    const direction = resolveDirection(controlKey, overrides)
+    if (direction) {
+      tagSet.add(direction)
+    }
+  }
+
+  const summary = ordered.filter((tag) => tagSet.has(tag)).map(directionShort)
+  if (summary.length === 0) {
+    return `${controlKeys.length} keys`
+  }
+  return summary.join('/')
 }
 
 function buildDefaultAssignments(joystickIds: number[]): DeviceAssignment {
