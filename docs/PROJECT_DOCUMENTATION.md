@@ -159,3 +159,4 @@ After each functional change:
 - Replaced point editor with rectangle-based per-button zone editor
 - Fixed editor interaction: image dragging is now disabled in editor mode to allow click-drag zone drawing
 - Hardened drag prevention (`dragstart` blocked on canvas/image) and editor hint when no control is selected
+- Switched drawing engine to pointer events + pointer capture and auto-fallback to first control key

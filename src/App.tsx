@@ -1,4 +1,4 @@
-import type { ChangeEvent, MouseEvent as ReactMouseEvent } from 'react'
+import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { JOYSTICK_ANGLES, THROTTLE_ANGLES } from './data/deviceProfiles'
 import { parseBindingsXml } from './lib/bindings'
@@ -284,6 +284,7 @@ function DevicePanel({
   const mergedZones = { ...selectedAngle.zoneDefaults, ...overrideZones }
   const [dragStart, setDragStart] = useState<DrawPoint | null>(null)
   const [draftZone, setDraftZone] = useState<ControlZone | null>(null)
+  const [drawingControlKey, setDrawingControlKey] = useState<string>('')
 
   const bindingsByControl = useMemo(() => {
     const map = new Map<string, BindingRecord[]>()
@@ -306,15 +307,24 @@ function DevicePanel({
   const mappedControls = controls.filter((controlKey) => mergedZones[controlKey] !== undefined)
   const unmappedControls = controls.filter((controlKey) => mergedZones[controlKey] === undefined)
 
-  const beginDraw = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const activeControlKey = editControlKey || controls[0] || ''
+
+  const beginDraw = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!editorEnabled || event.button !== 0) {
       return
     }
 
     event.preventDefault()
-    if (!editControlKey) {
+    if (!activeControlKey) {
       return
     }
+
+    if (!editControlKey) {
+      onEditControlKeyChange(activeControlKey)
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setDrawingControlKey(activeControlKey)
 
     const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
     setDragStart(point)
@@ -326,7 +336,7 @@ function DevicePanel({
     })
   }
 
-  const updateDraw = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const updateDraw = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragStart) {
       return
     }
@@ -335,17 +345,23 @@ function DevicePanel({
     setDraftZone(zoneFromPoints(dragStart, point))
   }
 
-  const finishDraw = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const finishDraw = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragStart) {
       return
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
     }
 
     const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
     const zone = zoneFromPoints(dragStart, point)
     setDragStart(null)
     setDraftZone(null)
+    const controlToSave = drawingControlKey || activeControlKey
+    setDrawingControlKey('')
 
-    if (!editControlKey) {
+    if (!controlToSave) {
       return
     }
 
@@ -353,7 +369,7 @@ function DevicePanel({
       return
     }
 
-    onPlaceZone(deviceKind, selectedAngle.id, editControlKey, zone)
+    onPlaceZone(deviceKind, selectedAngle.id, controlToSave, zone)
   }
 
   return (
@@ -378,11 +394,18 @@ function DevicePanel({
         <>
           <div
             className={`device-canvas ${editorEnabled ? 'editor-active' : ''}`}
-            onMouseDown={beginDraw}
-            onMouseMove={updateDraw}
-            onMouseUp={finishDraw}
-            onMouseLeave={finishDraw}
-            onDragStart={(event) => event.preventDefault()}
+            onPointerDown={beginDraw}
+            onPointerMove={updateDraw}
+            onPointerUp={finishDraw}
+            onPointerCancel={finishDraw}
+            onPointerLeave={(event) => {
+              if (dragStart) {
+                finishDraw(event)
+              }
+            }}
+            onDragStart={(event) => {
+              event.preventDefault()
+            }}
             role={editorEnabled ? 'button' : undefined}
             tabIndex={editorEnabled ? 0 : -1}
           >
