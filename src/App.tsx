@@ -1,13 +1,19 @@
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { DEFAULT_ZONE_OVERRIDES } from './data/defaultZones'
 import { JOYSTICK_ANGLES, THROTTLE_ANGLES } from './data/deviceProfiles'
 import { parseBindingsXml } from './lib/bindings'
 import {
+  cloneHotspotOverrides,
+  countHotspotZones,
   clearAngleHotspots,
   getHotspotMap,
+  mergeHotspotOverrides,
+  parseHotspotOverridesJson,
   readHotspotOverrides,
   removeHotspot,
   setHotspot,
+  serializeHotspotOverrides,
   writeHotspotOverrides,
   type HotspotOverrides,
 } from './lib/hotspots'
@@ -22,6 +28,12 @@ import './App.css'
 
 type DeviceAssignment = Record<number, DeviceKind>
 type DrawPoint = { x: number; y: number }
+type ZoneDataStatusTone = 'info' | 'error'
+
+interface ZoneDataStatus {
+  tone: ZoneDataStatusTone
+  message: string
+}
 
 function App() {
   const [xmlFileName, setXmlFileName] = useState<string>('')
@@ -33,9 +45,11 @@ function App() {
   const [editorEnabled, setEditorEnabled] = useState<boolean>(false)
   const [throttleEditControlKey, setThrottleEditControlKey] = useState<string>('')
   const [joystickEditControlKey, setJoystickEditControlKey] = useState<string>('')
-  const [hotspotOverrides, setHotspotOverrides] = useState<HotspotOverrides>(() =>
-    readHotspotOverrides(),
-  )
+  const [zoneDataStatus, setZoneDataStatus] = useState<ZoneDataStatus | null>(null)
+  const [hotspotOverrides, setHotspotOverrides] = useState<HotspotOverrides>(() => {
+    const localOverrides = readHotspotOverrides()
+    return mergeHotspotOverrides(DEFAULT_ZONE_OVERRIDES, localOverrides)
+  })
 
   useEffect(() => {
     writeHotspotOverrides(hotspotOverrides)
@@ -130,6 +144,58 @@ function App() {
     setHotspotOverrides((current) => clearAngleHotspots(current, deviceKind, angleId))
   }
 
+  const handleExportZones = () => {
+    const payload = serializeHotspotOverrides(hotspotOverrides)
+    const blob = new Blob([payload], { type: 'application/json' })
+    const exportUrl = URL.createObjectURL(blob)
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+    const filename = `hotas-zones-${timestamp}.json`
+    const link = document.createElement('a')
+    link.href = exportUrl
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(exportUrl)
+
+    setZoneDataStatus({
+      tone: 'info',
+      message: `Exported ${countHotspotZones(hotspotOverrides)} zones to ${filename}.`,
+    })
+  }
+
+  const handleImportZones = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    try {
+      const fileText = await file.text()
+      const importedOverrides = parseHotspotOverridesJson(fileText)
+      setHotspotOverrides(mergeHotspotOverrides(DEFAULT_ZONE_OVERRIDES, importedOverrides))
+      setZoneDataStatus({
+        tone: 'info',
+        message: `Imported ${countHotspotZones(importedOverrides)} zones from ${file.name}.`,
+      })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not import this zones JSON file.'
+      setZoneDataStatus({
+        tone: 'error',
+        message,
+      })
+    } finally {
+      event.target.value = ''
+    }
+  }
+
+  const handleResetLocalZones = () => {
+    setHotspotOverrides(cloneHotspotOverrides(DEFAULT_ZONE_OVERRIDES))
+    setZoneDataStatus({
+      tone: 'info',
+      message: 'Local edits cleared. Only bundled default zones are active now.',
+    })
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -188,6 +254,27 @@ function App() {
                   </span>
                 </label>
               ))}
+            </div>
+
+            <div className="zone-data-bar">
+              <p>
+                Zone data: <strong>{countHotspotZones(hotspotOverrides)}</strong> saved zones
+              </p>
+              <div className="zone-data-actions">
+                <button type="button" className="ghost-button" onClick={handleExportZones}>
+                  Export zones JSON
+                </button>
+                <label className="ghost-button file-import-button">
+                  Import zones JSON
+                  <input type="file" accept="application/json,.json" onChange={handleImportZones} />
+                </label>
+                <button type="button" className="ghost-button" onClick={handleResetLocalZones}>
+                  Reset local zones
+                </button>
+              </div>
+              {zoneDataStatus && (
+                <p className={`zone-data-status ${zoneDataStatus.tone}`}>{zoneDataStatus.message}</p>
+              )}
             </div>
           </section>
 
@@ -282,9 +369,9 @@ function DevicePanel({
   const selectedAngle = angles.find((angle) => angle.id === selectedAngleId) ?? angles[0]
   const overrideZones = getHotspotMap(hotspotOverrides, deviceKind, selectedAngle.id)
   const mergedZones = { ...selectedAngle.zoneDefaults, ...overrideZones }
-  const [dragStart, setDragStart] = useState<DrawPoint | null>(null)
   const [draftZone, setDraftZone] = useState<ControlZone | null>(null)
-  const [drawingControlKey, setDrawingControlKey] = useState<string>('')
+  const dragStartRef = useRef<DrawPoint | null>(null)
+  const drawingControlKeyRef = useRef<string>('')
 
   const bindingsByControl = useMemo(() => {
     const map = new Map<string, BindingRecord[]>()
@@ -324,10 +411,10 @@ function DevicePanel({
     }
 
     event.currentTarget.setPointerCapture(event.pointerId)
-    setDrawingControlKey(activeControlKey)
+    drawingControlKeyRef.current = activeControlKey
 
     const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
-    setDragStart(point)
+    dragStartRef.current = point
     setDraftZone({
       x: point.x,
       y: point.y,
@@ -337,29 +424,32 @@ function DevicePanel({
   }
 
   const updateDraw = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!dragStart) {
+    if (!dragStartRef.current) {
       return
     }
 
+    event.preventDefault()
     const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
-    setDraftZone(zoneFromPoints(dragStart, point))
+    setDraftZone(zoneFromPoints(dragStartRef.current, point))
   }
 
   const finishDraw = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!dragStart) {
+    if (!dragStartRef.current) {
       return
     }
 
+    event.preventDefault()
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
 
+    const startPoint = dragStartRef.current
     const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
-    const zone = zoneFromPoints(dragStart, point)
-    setDragStart(null)
+    const zone = zoneFromPoints(startPoint, point)
+    dragStartRef.current = null
     setDraftZone(null)
-    const controlToSave = drawingControlKey || activeControlKey
-    setDrawingControlKey('')
+    const controlToSave = drawingControlKeyRef.current || activeControlKey
+    drawingControlKeyRef.current = ''
 
     if (!controlToSave) {
       return
@@ -399,7 +489,7 @@ function DevicePanel({
             onPointerUp={finishDraw}
             onPointerCancel={finishDraw}
             onPointerLeave={(event) => {
-              if (dragStart) {
+              if (dragStartRef.current) {
                 finishDraw(event)
               }
             }}

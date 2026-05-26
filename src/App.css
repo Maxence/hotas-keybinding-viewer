@@ -205,6 +205,51 @@
   color: var(--ink-faint);
 }
 
+.zone-data-bar {
+  margin-top: 0.82rem;
+  padding-top: 0.72rem;
+  border-top: 1px solid var(--line);
+}
+
+.zone-data-bar p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.zone-data-actions {
+  margin-top: 0.55rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.file-import-button {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+}
+
+.file-import-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.zone-data-status {
+  margin-top: 0.52rem;
+  font-size: 0.84rem;
+}
+
+.zone-data-status.info {
+  color: #bfd6d9;
+}
+
+.zone-data-status.error {
+  color: var(--danger);
+}
+
 .layout-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

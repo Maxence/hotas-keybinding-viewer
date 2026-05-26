@@ -31,9 +31,12 @@ Core requirements implemented:
 - `src/lib/hotspots.ts`
   - LocalStorage persistence for hotspot overrides
   - CRUD helpers for per-angle hotspots
+- JSON export/import helpers for zone sharing
 - `src/data/deviceProfiles.ts`
   - Device angle definitions
   - Default hotspot coordinates (seed values)
+- `src/data/defaultZones.ts`
+  - Bundled project-wide default zone overrides
 - `src/types.ts`
   - Shared type definitions
 
@@ -54,7 +57,7 @@ Core requirements implemented:
 ## 4) Hotspots & Editing
 
 Zones are resolved as:
-- `zone defaults` from `src/data/deviceProfiles.ts`
+- bundled defaults from `src/data/defaultZones.ts`
 - overridden by user-edited values from LocalStorage
 
 Storage key:
@@ -69,6 +72,9 @@ Editor mode:
 - Select a control in the control list
 - Click + drag on image to draw a rectangle zone
 - Remove selected zone or clear all zones on current angle
+- Export full zones data as JSON
+- Import zones JSON to restore/share a zone set
+- Reset local zones to bundled defaults
 
 Legacy migration:
 - If `hotas-viewer.zones.v2` is missing, the app tries to migrate old point-based data from `hotas-viewer.hotspots.v1`.
@@ -106,7 +112,7 @@ Current method:
 ## 7) Known Limitations
 
 - No automatic 3D button detection; precision comes from manual zone drawing by user
-- Zone sets are local to browser storage unless exported manually (future enhancement)
+- Imported/exported zone payload validation is permissive (unknown map keys are ignored at runtime)
 - If XML includes unusual input patterns, normalization may need extension
 
 ## 8) Deployment (GitHub Pages)
@@ -160,3 +166,5 @@ After each functional change:
 - Fixed editor interaction: image dragging is now disabled in editor mode to allow click-drag zone drawing
 - Hardened drag prevention (`dragstart` blocked on canvas/image) and editor hint when no control is selected
 - Switched drawing engine to pointer events + pointer capture and auto-fallback to first control key
+- Added zone data toolbox (export/import/reset) to persist and share manual mappings
+- Added bundled default zones entrypoint (`src/data/defaultZones.ts`) merged with local overrides

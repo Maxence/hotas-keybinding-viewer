@@ -52,6 +52,23 @@ Pour placer précisément les actions sur les boutons:
 
 Les zones sont sauvegardées automatiquement en local (`localStorage`).
 
+### Sauvegarde et partage des zones
+
+Dans le panneau `Profile & Device Assignment`:
+
+1. `Export zones JSON` pour télécharger toutes les zones actuelles
+2. `Import zones JSON` pour recharger un export précédent
+3. `Reset local zones` pour revenir aux zones par défaut du projet
+
+Fichier de base du projet pour les visiteurs:
+- `src/data/defaultZones.ts`
+
+Workflow recommandé:
+1. Tu dessines toutes les zones
+2. Tu exportes le JSON
+3. Tu me donnes ce JSON
+4. Je l’intègre dans `src/data/defaultZones.ts` pour qu’il soit actif par défaut pour tout le monde
+
 ## Déploiement GitHub Pages
 
 Le repo est prêt pour un déploiement automatique via GitHub Actions.
