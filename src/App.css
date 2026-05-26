@@ -267,39 +267,49 @@
   cursor: crosshair;
 }
 
-.hotspot {
+.zone-hitbox {
   position: absolute;
-  transform: translate(-50%, -50%);
   border: none;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
   padding: 0;
   cursor: pointer;
   z-index: 4;
+  border-radius: 0.32rem;
+  border: 1px solid rgba(150, 164, 170, 0.68);
 }
 
-.hotspot-dot {
-  width: 0.82rem;
-  height: 0.82rem;
-  display: block;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow:
-    0 0 0 3px rgba(9, 11, 13, 0.92),
-    0 0 9px rgba(126, 204, 212, 0.34);
-  animation: pulse-dot 2.2s infinite;
+.zone-hitbox:hover {
+  border-color: rgba(215, 223, 227, 0.92);
 }
 
-.hotspot-caption {
-  margin-top: 0.18rem;
+.zone-label {
+  position: absolute;
+  top: -1.12rem;
+  left: 0;
   display: inline-block;
-  padding: 0.14rem 0.26rem;
-  border-radius: 0.24rem;
-  border: 1px solid rgba(140, 154, 161, 0.6);
+  padding: 0.12rem 0.22rem;
+  border-radius: 0.22rem;
+  border: 1px solid rgba(140, 154, 161, 0.7);
   background: rgba(7, 9, 11, 0.95);
   color: #e7edf0;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   line-height: 1;
+}
+
+.zone-hitbox::after {
+  content: '';
+  position: absolute;
+  right: 0.14rem;
+  bottom: 0.14rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: rgba(219, 232, 237, 0.82);
+  box-shadow:
+    0 0 0 1px rgba(8, 10, 12, 0.8),
+    0 0 8px rgba(139, 170, 176, 0.33);
+  animation: pulse-dot 2.2s infinite;
 }
 
 .hotspot-tooltip {
@@ -332,16 +342,30 @@
   line-height: 1.34;
 }
 
-.hotspot:hover .hotspot-tooltip,
-.hotspot:focus-visible .hotspot-tooltip {
+.zone-hitbox:hover .hotspot-tooltip,
+.zone-hitbox:focus-visible .hotspot-tooltip {
   display: block;
 }
 
-.hotspot.is-selected .hotspot-dot {
+.zone-hitbox.is-selected {
+  border-color: rgba(228, 236, 239, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+
+.zone-hitbox.is-selected::after {
   background: #eceff1;
   box-shadow:
-    0 0 0 3px rgba(9, 11, 13, 0.95),
+    0 0 0 2px rgba(9, 11, 13, 0.95),
     0 0 9px rgba(255, 255, 255, 0.42);
+}
+
+.zone-draft {
+  position: absolute;
+  z-index: 3;
+  border-radius: 0.28rem;
+  border: 1px dashed rgba(205, 216, 221, 0.96);
+  background: rgba(180, 200, 205, 0.12);
+  pointer-events: none;
 }
 
 .binding-summary {

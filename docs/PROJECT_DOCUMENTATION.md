@@ -53,12 +53,12 @@ Core requirements implemented:
 
 ## 4) Hotspots & Editing
 
-Hotspots are resolved as:
-- `angle defaults` from `src/data/deviceProfiles.ts`
+Zones are resolved as:
+- `zone defaults` from `src/data/deviceProfiles.ts`
 - overridden by user-edited values from LocalStorage
 
 Storage key:
-- `hotas-viewer.hotspots.v1`
+- `hotas-viewer.zones.v2`
 
 Per-angle key format:
 - `throttle:<angleId>`
@@ -67,8 +67,11 @@ Per-angle key format:
 Editor mode:
 - Enable editor from assignment panel
 - Select a control in the control list
-- Click the image to place/move the hotspot
-- Remove selected hotspot or reset current angle overrides
+- Click + drag on image to draw a rectangle zone
+- Remove selected zone or clear all zones on current angle
+
+Legacy migration:
+- If `hotas-viewer.zones.v2` is missing, the app tries to migrate old point-based data from `hotas-viewer.hotspots.v1`.
 
 ## 5) Assets Pipeline
 
@@ -102,8 +105,8 @@ Current method:
 
 ## 7) Known Limitations
 
-- Default hotspot positions are starter values, not full manufacturer-accurate mapping
-- Hotspot coordinates are still seeded defaults and may need per-angle manual refinement
+- No automatic 3D button detection; precision comes from manual zone drawing by user
+- Zone sets are local to browser storage unless exported manually (future enhancement)
 - If XML includes unusual input patterns, normalization may need extension
 
 ## 8) Deployment (GitHub Pages)
@@ -153,3 +156,4 @@ After each functional change:
 - Reworked UI skin to dark space/HUD visual style
 - Replaced app visual assets with `joydesign` image set and new angle crops
 - Tuned UI to a cleaner dark palette with less blue dominance
+- Replaced point editor with rectangle-based per-button zone editor

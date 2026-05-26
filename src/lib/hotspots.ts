@@ -1,8 +1,12 @@
-import type { DeviceKind, HotspotPoint } from '../types'
+import type { ControlZone, DeviceKind } from '../types'
 
-const HOTSPOTS_STORAGE_KEY = 'hotas-viewer.hotspots.v1'
+const ZONES_STORAGE_KEY = 'hotas-viewer.zones.v2'
+const LEGACY_HOTSPOTS_STORAGE_KEY = 'hotas-viewer.hotspots.v1'
 
-export type HotspotOverrides = Record<string, Record<string, HotspotPoint>>
+type LegacyPoint = { x: number; y: number }
+type LegacyOverrides = Record<string, Record<string, LegacyPoint>>
+
+export type HotspotOverrides = Record<string, Record<string, ControlZone>>
 
 function storageKey(deviceKind: DeviceKind, angleId: string): string {
   return `${deviceKind}:${angleId}`
@@ -10,31 +14,35 @@ function storageKey(deviceKind: DeviceKind, angleId: string): string {
 
 export function readHotspotOverrides(): HotspotOverrides {
   try {
-    const raw = window.localStorage.getItem(HOTSPOTS_STORAGE_KEY)
-    if (!raw) {
+    const raw = window.localStorage.getItem(ZONES_STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as HotspotOverrides
+      if (parsed && typeof parsed === 'object') {
+        return parsed
+      }
+    }
+
+    const legacyRaw = window.localStorage.getItem(LEGACY_HOTSPOTS_STORAGE_KEY)
+    if (!legacyRaw) {
       return {}
     }
 
-    const parsed = JSON.parse(raw) as HotspotOverrides
-    if (!parsed || typeof parsed !== 'object') {
-      return {}
-    }
-
-    return parsed
+    const legacyParsed = JSON.parse(legacyRaw) as LegacyOverrides
+    return migrateLegacyHotspots(legacyParsed)
   } catch {
     return {}
   }
 }
 
 export function writeHotspotOverrides(overrides: HotspotOverrides): void {
-  window.localStorage.setItem(HOTSPOTS_STORAGE_KEY, JSON.stringify(overrides))
+  window.localStorage.setItem(ZONES_STORAGE_KEY, JSON.stringify(overrides))
 }
 
 export function getHotspotMap(
   overrides: HotspotOverrides,
   deviceKind: DeviceKind,
   angleId: string,
-): Record<string, HotspotPoint> {
+): Record<string, ControlZone> {
   if (deviceKind === 'none') {
     return {}
   }
@@ -47,7 +55,7 @@ export function setHotspot(
   deviceKind: DeviceKind,
   angleId: string,
   controlKey: string,
-  point: HotspotPoint,
+  zone: ControlZone,
 ): HotspotOverrides {
   if (deviceKind === 'none') {
     return overrides
@@ -58,7 +66,7 @@ export function setHotspot(
     ...overrides,
     [mapKey]: {
       ...(overrides[mapKey] ?? {}),
-      [controlKey]: point,
+      [controlKey]: zone,
     },
   }
 }
@@ -97,4 +105,24 @@ export function clearAngleHotspots(
     ...overrides,
     [mapKey]: {},
   }
+}
+
+function migrateLegacyHotspots(legacy: LegacyOverrides): HotspotOverrides {
+  const next: HotspotOverrides = {}
+  for (const [angleKey, controls] of Object.entries(legacy ?? {})) {
+    next[angleKey] = {}
+    for (const [controlKey, point] of Object.entries(controls ?? {})) {
+      next[angleKey][controlKey] = {
+        x: clamp(point.x - 2.4, 0, 100),
+        y: clamp(point.y - 2.4, 0, 100),
+        width: 4.8,
+        height: 4.8,
+      }
+    }
+  }
+  return next
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
 }

@@ -40,6 +40,18 @@ Ce script:
 - découpe les vues combinées en panneaux `throttle` et `joystick`
 - copie les vues de détail (grip, base top, multi-angle)
 
+## Éditeur de zones (recommandé)
+
+Pour placer précisément les actions sur les boutons:
+
+1. Charger ton XML
+2. Assigner `js` -> `Throttle` / `Joystick`
+3. Activer `Enable zone editor`
+4. Choisir un contrôle dans `Control List`
+5. Cliquer-glisser sur l'image pour dessiner la zone du bouton
+
+Les zones sont sauvegardées automatiquement en local (`localStorage`).
+
 ## Déploiement GitHub Pages
 
 Le repo est prêt pour un déploiement automatique via GitHub Actions.

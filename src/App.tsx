@@ -1,4 +1,4 @@
-import type { ChangeEvent, MouseEvent } from 'react'
+import type { ChangeEvent, MouseEvent as ReactMouseEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { JOYSTICK_ANGLES, THROTTLE_ANGLES } from './data/deviceProfiles'
 import { parseBindingsXml } from './lib/bindings'
@@ -14,13 +14,14 @@ import {
 import type {
   AngleView,
   BindingRecord,
+  ControlZone,
   DeviceKind,
-  HotspotPoint,
   ParsedProfile,
 } from './types'
 import './App.css'
 
 type DeviceAssignment = Record<number, DeviceKind>
+type DrawPoint = { x: number; y: number }
 
 function App() {
   const [xmlFileName, setXmlFileName] = useState<string>('')
@@ -112,22 +113,20 @@ function App() {
     })
   }
 
-  const handlePlaceHotspot = (
+  const handlePlaceZone = (
     deviceKind: DeviceKind,
     angleId: string,
     controlKey: string,
-    point: HotspotPoint,
+    zone: ControlZone,
   ) => {
-    setHotspotOverrides((current) => setHotspot(current, deviceKind, angleId, controlKey, point))
+    setHotspotOverrides((current) => setHotspot(current, deviceKind, angleId, controlKey, zone))
   }
 
-  const handleRemoveHotspot = (deviceKind: DeviceKind, angleId: string, controlKey: string) => {
-    setHotspotOverrides((current) =>
-      removeHotspot(current, deviceKind, angleId, controlKey),
-    )
+  const handleRemoveZone = (deviceKind: DeviceKind, angleId: string, controlKey: string) => {
+    setHotspotOverrides((current) => removeHotspot(current, deviceKind, angleId, controlKey))
   }
 
-  const handleResetAngleHotspots = (deviceKind: DeviceKind, angleId: string) => {
+  const handleResetAngleZones = (deviceKind: DeviceKind, angleId: string) => {
     setHotspotOverrides((current) => clearAngleHotspots(current, deviceKind, angleId))
   }
 
@@ -138,7 +137,7 @@ function App() {
         <h1>XML Binding to Visual HOTAS Map</h1>
         <p className="intro">
           Import a Star Citizen XML profile, assign each detected `js` device as throttle or
-          joystick, then inspect mapped actions directly on device images.
+          joystick, then map bindings on each image angle with the zone editor.
         </p>
       </header>
 
@@ -147,12 +146,7 @@ function App() {
           XML Binding File
         </label>
         <div className="import-row">
-          <input
-            id="xmlFile"
-            type="file"
-            accept=".xml,text/xml"
-            onChange={handleXmlImport}
-          />
+          <input id="xmlFile" type="file" accept=".xml,text/xml" onChange={handleXmlImport} />
           <span className="file-chip">{xmlFileName || 'No file loaded yet'}</span>
         </div>
         {parseError && <p className="error-message">{parseError}</p>}
@@ -168,7 +162,7 @@ function App() {
                 className="ghost-button"
                 onClick={() => setEditorEnabled((current) => !current)}
               >
-                {editorEnabled ? 'Disable hotspot editor' : 'Enable hotspot editor'}
+                {editorEnabled ? 'Disable zone editor' : 'Enable zone editor'}
               </button>
             </div>
             <p className="meta-line">
@@ -210,9 +204,9 @@ function App() {
               editControlKey={throttleEditControlKey}
               onEditControlKeyChange={setThrottleEditControlKey}
               hotspotOverrides={hotspotOverrides}
-              onPlaceHotspot={handlePlaceHotspot}
-              onRemoveHotspot={handleRemoveHotspot}
-              onResetAngleHotspots={handleResetAngleHotspots}
+              onPlaceZone={handlePlaceZone}
+              onRemoveZone={handleRemoveZone}
+              onResetAngleZones={handleResetAngleZones}
             />
             <DevicePanel
               title="Joystick"
@@ -226,9 +220,9 @@ function App() {
               editControlKey={joystickEditControlKey}
               onEditControlKeyChange={setJoystickEditControlKey}
               hotspotOverrides={hotspotOverrides}
-              onPlaceHotspot={handlePlaceHotspot}
-              onRemoveHotspot={handleRemoveHotspot}
-              onResetAngleHotspots={handleResetAngleHotspots}
+              onPlaceZone={handlePlaceZone}
+              onRemoveZone={handleRemoveZone}
+              onResetAngleZones={handleResetAngleZones}
             />
           </section>
         </>
@@ -259,14 +253,14 @@ interface DevicePanelProps {
   editControlKey: string
   onEditControlKeyChange: (controlKey: string) => void
   hotspotOverrides: HotspotOverrides
-  onPlaceHotspot: (
+  onPlaceZone: (
     deviceKind: DeviceKind,
     angleId: string,
     controlKey: string,
-    point: HotspotPoint,
+    zone: ControlZone,
   ) => void
-  onRemoveHotspot: (deviceKind: DeviceKind, angleId: string, controlKey: string) => void
-  onResetAngleHotspots: (deviceKind: DeviceKind, angleId: string) => void
+  onRemoveZone: (deviceKind: DeviceKind, angleId: string, controlKey: string) => void
+  onResetAngleZones: (deviceKind: DeviceKind, angleId: string) => void
 }
 
 function DevicePanel({
@@ -281,13 +275,15 @@ function DevicePanel({
   editControlKey,
   onEditControlKeyChange,
   hotspotOverrides,
-  onPlaceHotspot,
-  onRemoveHotspot,
-  onResetAngleHotspots,
+  onPlaceZone,
+  onRemoveZone,
+  onResetAngleZones,
 }: DevicePanelProps) {
   const selectedAngle = angles.find((angle) => angle.id === selectedAngleId) ?? angles[0]
-  const overrideHotspots = getHotspotMap(hotspotOverrides, deviceKind, selectedAngle.id)
-  const mergedHotspots = { ...selectedAngle.hotspotDefaults, ...overrideHotspots }
+  const overrideZones = getHotspotMap(hotspotOverrides, deviceKind, selectedAngle.id)
+  const mergedZones = { ...selectedAngle.zoneDefaults, ...overrideZones }
+  const [dragStart, setDragStart] = useState<DrawPoint | null>(null)
+  const [draftZone, setDraftZone] = useState<ControlZone | null>(null)
 
   const bindingsByControl = useMemo(() => {
     const map = new Map<string, BindingRecord[]>()
@@ -307,29 +303,59 @@ function DevicePanel({
     [bindingsByControl],
   )
 
-  const mappedControls = controls.filter((controlKey) => mergedHotspots[controlKey] !== undefined)
-  const unmappedControls = controls.filter((controlKey) => mergedHotspots[controlKey] === undefined)
+  const mappedControls = controls.filter((controlKey) => mergedZones[controlKey] !== undefined)
+  const unmappedControls = controls.filter((controlKey) => mergedZones[controlKey] === undefined)
 
-  const handleImageClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (!editorEnabled || !editControlKey) {
+  const beginDraw = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!editorEnabled || !editControlKey || event.button !== 0) {
       return
     }
 
-    const rect = event.currentTarget.getBoundingClientRect()
-    const x = ((event.clientX - rect.left) / rect.width) * 100
-    const y = ((event.clientY - rect.top) / rect.height) * 100
-    onPlaceHotspot(deviceKind, selectedAngle.id, editControlKey, {
-      x: clamp(x, 0, 100),
-      y: clamp(y, 0, 100),
+    const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
+    setDragStart(point)
+    setDraftZone({
+      x: point.x,
+      y: point.y,
+      width: 0,
+      height: 0,
     })
+  }
+
+  const updateDraw = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!dragStart) {
+      return
+    }
+
+    const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
+    setDraftZone(zoneFromPoints(dragStart, point))
+  }
+
+  const finishDraw = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!dragStart) {
+      return
+    }
+
+    const point = pointFromMouse(event.currentTarget, event.clientX, event.clientY)
+    const zone = zoneFromPoints(dragStart, point)
+    setDragStart(null)
+    setDraftZone(null)
+
+    if (!editControlKey) {
+      return
+    }
+
+    if (zone.width < 0.9 || zone.height < 0.9) {
+      return
+    }
+
+    onPlaceZone(deviceKind, selectedAngle.id, editControlKey, zone)
   }
 
   return (
     <article className="panel device-panel">
       <div className="panel-heading">
         <h2>
-          {title}{' '}
-          <span className="device-chip">{joystickId ? `js${joystickId}` : 'Not assigned'}</span>
+          {title} <span className="device-chip">{joystickId ? `js${joystickId}` : 'Not assigned'}</span>
         </h2>
         <label className="angle-select-label">
           Angle
@@ -347,33 +373,37 @@ function DevicePanel({
         <>
           <div
             className={`device-canvas ${editorEnabled ? 'editor-active' : ''}`}
-            onClick={handleImageClick}
+            onMouseDown={beginDraw}
+            onMouseMove={updateDraw}
+            onMouseUp={finishDraw}
+            onMouseLeave={finishDraw}
             role={editorEnabled ? 'button' : undefined}
             tabIndex={editorEnabled ? 0 : -1}
           >
             <img src={selectedAngle.imagePath} alt={`${title} ${selectedAngle.label}`} />
             {mappedControls.map((controlKey) => {
-              const point = mergedHotspots[controlKey]
+              const zone = mergedZones[controlKey]
               const controlBindings = bindingsByControl.get(controlKey) ?? []
               const actionLabels = uniqueActionLabels(controlBindings)
+
               return (
                 <button
                   type="button"
-                  className={`hotspot ${controlKey === editControlKey ? 'is-selected' : ''}`}
+                  className={`zone-hitbox ${controlKey === editControlKey ? 'is-selected' : ''}`}
                   key={controlKey}
                   style={{
-                    left: `${point.x}%`,
-                    top: `${point.y}%`,
+                    left: `${zone.x}%`,
+                    top: `${zone.y}%`,
+                    width: `${zone.width}%`,
+                    height: `${zone.height}%`,
                   }}
+                  onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation()
-                    if (editorEnabled) {
-                      onEditControlKeyChange(controlKey)
-                    }
+                    onEditControlKeyChange(controlKey)
                   }}
                 >
-                  <span className="hotspot-dot" />
-                  <span className="hotspot-caption">{compactControlLabel(controlKey)}</span>
+                  <span className="zone-label">{compactControlLabel(controlKey)}</span>
                   <span className="hotspot-tooltip">
                     <strong>{controlBindings[0]?.controlLabel ?? controlKey}</strong>
                     {actionLabels.map((label) => (
@@ -383,14 +413,25 @@ function DevicePanel({
                 </button>
               )
             })}
+            {draftZone && (
+              <div
+                className="zone-draft"
+                style={{
+                  left: `${draftZone.x}%`,
+                  top: `${draftZone.y}%`,
+                  width: `${draftZone.width}%`,
+                  height: `${draftZone.height}%`,
+                }}
+              />
+            )}
           </div>
 
           <div className="binding-summary">
             <p>
-              <strong>{mappedControls.length}</strong> mapped controls
+              <strong>{mappedControls.length}</strong> controls with zone
             </p>
             <p>
-              <strong>{unmappedControls.length}</strong> controls without hotspot on this angle
+              <strong>{unmappedControls.length}</strong> controls without zone on this angle
             </p>
           </div>
 
@@ -400,7 +441,7 @@ function DevicePanel({
               {controls.map((controlKey) => {
                 const controlBindings = bindingsByControl.get(controlKey) ?? []
                 const boundActions = uniqueActionLabels(controlBindings)
-                const hasHotspot = mergedHotspots[controlKey] !== undefined
+                const hasZone = mergedZones[controlKey] !== undefined
 
                 return (
                   <button
@@ -413,7 +454,7 @@ function DevicePanel({
                       <strong>{controlBindings[0]?.controlLabel ?? controlKey}</strong>
                       <small>{boundActions.join(' • ')}</small>
                     </span>
-                    <span className={`status-dot ${hasHotspot ? 'ok' : 'todo'}`} />
+                    <span className={`status-dot ${hasZone ? 'ok' : 'todo'}`} />
                   </button>
                 )
               })}
@@ -423,15 +464,16 @@ function DevicePanel({
           {editorEnabled && (
             <div className="editor-bar">
               <p>
-                Editor mode: select a control above, then click on the image to place its hotspot.
+                Zone editor: select a control in the list, then click + drag on image to draw a
+                rectangle zone.
               </p>
               <div className="editor-actions">
                 <button
                   type="button"
                   className="ghost-button"
-                  onClick={() => onResetAngleHotspots(deviceKind, selectedAngle.id)}
+                  onClick={() => onResetAngleZones(deviceKind, selectedAngle.id)}
                 >
-                  Reset this angle placements
+                  Clear all zones on this angle
                 </button>
                 <button
                   type="button"
@@ -439,11 +481,11 @@ function DevicePanel({
                   disabled={!editControlKey}
                   onClick={() => {
                     if (editControlKey) {
-                      onRemoveHotspot(deviceKind, selectedAngle.id, editControlKey)
+                      onRemoveZone(deviceKind, selectedAngle.id, editControlKey)
                     }
                   }}
                 >
-                  Remove selected control hotspot
+                  Remove selected control zone
                 </button>
               </div>
             </div>
@@ -507,6 +549,34 @@ function compactControlLabel(controlKey: string): string {
   }
 
   return controlKey.toUpperCase()
+}
+
+function pointFromMouse(
+  target: HTMLDivElement,
+  clientX: number,
+  clientY: number,
+): DrawPoint {
+  const rect = target.getBoundingClientRect()
+  const x = ((clientX - rect.left) / rect.width) * 100
+  const y = ((clientY - rect.top) / rect.height) * 100
+  return {
+    x: clamp(x, 0, 100),
+    y: clamp(y, 0, 100),
+  }
+}
+
+function zoneFromPoints(a: DrawPoint, b: DrawPoint): ControlZone {
+  const left = Math.min(a.x, b.x)
+  const top = Math.min(a.y, b.y)
+  const right = Math.max(a.x, b.x)
+  const bottom = Math.max(a.y, b.y)
+
+  return {
+    x: clamp(left, 0, 100),
+    y: clamp(top, 0, 100),
+    width: clamp(right - left, 0, 100),
+    height: clamp(bottom - top, 0, 100),
+  }
 }
 
 function clamp(value: number, min: number, max: number): number {

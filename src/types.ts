@@ -17,14 +17,16 @@ export interface ParsedProfile {
   bindings: BindingRecord[]
 }
 
-export interface HotspotPoint {
+export interface ControlZone {
   x: number
   y: number
+  width: number
+  height: number
 }
 
 export interface AngleView {
   id: string
   label: string
   imagePath: string
-  hotspotDefaults: Record<string, HotspotPoint>
+  zoneDefaults: Record<string, ControlZone>
 }
