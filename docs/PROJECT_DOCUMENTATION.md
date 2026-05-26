@@ -107,8 +107,7 @@ The project includes a Pages workflow:
 
 Build strategy:
 - Vite build output from `npm run build`
-- Artifact upload from `dist/`
-- GitHub Pages deploy action
+- Deployment commit to `gh-pages` branch using `peaceiris/actions-gh-pages`
 
 Base path handling:
 - `vite.config.ts` reads `process.env.VITE_BASE_PATH` and defaults to `/`
@@ -117,8 +116,9 @@ Base path handling:
 Manual setup on GitHub:
 1. Open repository settings
 2. Go to `Pages`
-3. Set source to `GitHub Actions`
-4. Push to `main` (or rerun workflow manually)
+3. Set source to `Deploy from a branch`
+4. Select `gh-pages` and folder `/(root)`
+5. Push to `main` (or rerun workflow manually)
 
 ## 9) Maintenance Rule
 
@@ -141,3 +141,4 @@ After each functional change:
 - Added/updated project documentation and README
 - Added GitHub Pages deployment workflow
 - Added Vite base path env support for project-pages URLs
+- Switched Pages deployment strategy to `gh-pages` branch publication for easier bootstrap

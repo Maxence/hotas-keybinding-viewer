@@ -45,8 +45,9 @@ Le repo est prêt pour un déploiement automatique via GitHub Actions.
 
 1. Pousser la branche `main` sur GitHub
 2. Dans GitHub: `Settings -> Pages`
-3. Dans `Build and deployment`, choisir `Source: GitHub Actions`
-4. Le workflow `.github/workflows/deploy-pages.yml` publiera automatiquement `dist/`
+3. Dans `Build and deployment`, choisir `Source: Deploy from a branch`
+4. Sélectionner `Branch: gh-pages` et `Folder: /(root)`
+5. Le workflow `.github/workflows/deploy-pages.yml` publiera automatiquement `dist/` vers `gh-pages`
 
 URL finale attendue:
 - `https://<ton-user>.github.io/hotas-keybinding-viewer/`
