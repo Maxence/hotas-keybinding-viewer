@@ -861,6 +861,9 @@ function DevicePanel({
                       y2={callout.targetY}
                     />
                   ))}
+                  {previewCallouts.map((callout) => (
+                    <circle key={`dot-${callout.key}`} cx={callout.sourceX} cy={callout.sourceY} r={0.45} />
+                  ))}
                 </svg>
                 {previewCallouts.map((callout) => (
                   <button
@@ -1194,10 +1197,10 @@ function buildPreviewCallouts(
   directionOverrides: Record<string, DirectionTag>,
   editControlKey: string,
 ): PreviewCallout[] {
-  const sideWidth = 26
-  const topWidth = 20
-  const sideHeight = 9
-  const topHeight = 8.5
+  const sideWidth = 24
+  const topWidth = 18
+  const sideHeight = 11.5
+  const topHeight = 9
 
   const provisional = zoneGroups.map((group) => {
     const sourceX = clamp(group.zone.x + group.zone.width / 2, 0, 100)
@@ -1211,7 +1214,7 @@ function buildPreviewCallouts(
         formatControlLabel(group.controlKeys[0])
       : `${buildGroupDirectionLabel(group.controlKeys, directionOverrides)} • ${group.controlKeys.length} controls`
 
-    const lines = group.controlKeys
+    const rawLines = group.controlKeys
       .slice()
       .sort((a, b) =>
         directionSortRank(resolveDirection(a, directionOverrides)).localeCompare(
@@ -1223,11 +1226,14 @@ function buildPreviewCallouts(
         const direction = resolveDirection(controlKey, directionOverrides)
         const directionText = direction ? `${directionTagLabel(direction)} • ` : ''
         const bindings = bindingsByControl.get(controlKey) ?? []
-        const actions = summarizeActions(uniqueActionLabels(bindings), 2)
-        const label = bindings[0]?.controlLabel ?? formatControlLabel(controlKey)
-        return `${directionText}${label}${actions ? ` — ${actions}` : ''}`
+        const actions = summarizeActions(uniqueActionLabels(bindings), 1)
+        const compactControl = compactControlLabel(controlKey)
+        const line = `${directionText}${compactControl}${actions ? ` — ${actions}` : ''}`
+        return truncateText(line, 66)
       })
       .slice(0, 4)
+    const lines = rawLines.length > 0 ? rawLines : ['No action on current filter']
+    const computedHeight = clamp(4.4 + lines.length * 1.55, 5.2, sideHeight)
 
     return {
       key: group.key,
@@ -1235,25 +1241,35 @@ function buildPreviewCallouts(
       sourceX,
       sourceY,
       width: side === 'top' || side === 'bottom' ? topWidth : sideWidth,
-      height: side === 'top' || side === 'bottom' ? topHeight : sideHeight,
+      height: side === 'top' || side === 'bottom' ? topHeight : computedHeight,
       left: 0,
       top: 0,
       targetX: 0,
       targetY: 0,
-      title,
+      title: truncateText(title, 50),
       lines,
       selectionKey,
       isSelected,
     }
   })
 
-  resizeCalloutsForSide(provisional, 'left', { available: 88, preferred: sideHeight, min: 5.4, kind: 'height' })
-  resizeCalloutsForSide(provisional, 'right', { available: 88, preferred: sideHeight, min: 5.4, kind: 'height' })
-  resizeCalloutsForSide(provisional, 'top', { available: 92, preferred: topWidth, min: 12, kind: 'width' })
-  resizeCalloutsForSide(provisional, 'bottom', { available: 92, preferred: topWidth, min: 12, kind: 'width' })
+  resizeCalloutsForSide(provisional, 'left', {
+    available: 88,
+    preferred: sideHeight,
+    min: 4.9,
+    kind: 'height',
+  })
+  resizeCalloutsForSide(provisional, 'right', {
+    available: 88,
+    preferred: sideHeight,
+    min: 4.9,
+    kind: 'height',
+  })
+  resizeCalloutsForSide(provisional, 'top', { available: 92, preferred: topWidth, min: 11, kind: 'width' })
+  resizeCalloutsForSide(provisional, 'bottom', { available: 92, preferred: topWidth, min: 11, kind: 'width' })
 
   placeCalloutsOnSide(provisional, 'left', { axisStart: 6, axisEnd: 94, fixedCoord: 1, axis: 'y' })
-  placeCalloutsOnSide(provisional, 'right', { axisStart: 6, axisEnd: 94, fixedCoord: 73, axis: 'y' })
+  placeCalloutsOnSide(provisional, 'right', { axisStart: 6, axisEnd: 94, fixedCoord: 75, axis: 'y' })
   placeCalloutsOnSide(provisional, 'top', { axisStart: 4, axisEnd: 96, fixedCoord: 1, axis: 'x' })
   placeCalloutsOnSide(provisional, 'bottom', { axisStart: 4, axisEnd: 96, fixedCoord: 90, axis: 'x' })
 
@@ -1272,12 +1288,20 @@ function resizeCalloutsForSide(
 
   const maxByCount = config.available / onSide.length - 0.8
   const finalSize = clamp(Math.min(config.preferred, maxByCount), config.min, config.preferred)
-  for (const callout of onSide) {
-    if (config.kind === 'width') {
+  if (config.kind === 'width') {
+    for (const callout of onSide) {
       callout.width = finalSize
-      continue
     }
-    callout.height = finalSize
+    return
+  }
+
+  const preferredTotal = onSide.reduce((sum, callout) => sum + callout.height, 0)
+  const availableTotal = config.available - Math.max(0, onSide.length - 1) * 0.8
+  const ratio = preferredTotal > 0 ? Math.min(1, availableTotal / preferredTotal) : 1
+
+  for (const callout of onSide) {
+    const scaled = callout.height * ratio
+    callout.height = clamp(scaled, config.min, callout.height)
   }
 }
 
@@ -1334,10 +1358,10 @@ function distributeCenters(count: number, start: number, end: number): number[] 
 }
 
 function pickCalloutSide(x: number, y: number): PreviewCallout['side'] {
-  if (y <= 17) {
+  if (y <= 11 && x > 35 && x < 65) {
     return 'top'
   }
-  if (y >= 86) {
+  if (y >= 89) {
     return 'bottom'
   }
   if (x <= 50) {
@@ -1352,11 +1376,29 @@ function summarizeActions(actions: string[], max: number): string {
   }
 
   if (actions.length <= max) {
-    return actions.join(' | ')
+    return actions.map(compactActionLabel).join(' | ')
   }
 
-  const displayed = actions.slice(0, max).join(' | ')
+  const displayed = actions.slice(0, max).map(compactActionLabel).join(' | ')
   return `${displayed} (+${actions.length - max})`
+}
+
+function compactActionLabel(raw: string): string {
+  const split = raw.split(':')
+  if (split.length < 2) {
+    return truncateText(raw.trim(), 40)
+  }
+
+  const mapLabel = split[0].trim()
+  const actionLabel = split.slice(1).join(':').trim()
+  return truncateText(`${mapLabel} ${actionLabel}`, 40)
+}
+
+function truncateText(value: string, max: number): string {
+  if (value.length <= max) {
+    return value
+  }
+  return `${value.slice(0, max - 1)}…`
 }
 
 function directionSortRank(direction: DirectionTag | null): string {

@@ -99,7 +99,8 @@ Preview callout layout:
 - Each tooltip is connected to its source zone with a line
 - Side-aware placement (`left/right/top/bottom`) with distribution by side to reduce overlap
 - Callout card size is dynamically reduced when many callouts share one side
-- Device image is downscaled in preview mode to preserve a perimeter area for callouts
+- Device image keeps normal framing (no preview crop/downscale)
+- Source dots are rendered at anchor points to validate line targeting
 
 Legacy migration:
 - If `hotas-viewer.zones.v2` is missing, the app tries to migrate old point-based data from `hotas-viewer.hotspots.v1`.
@@ -232,3 +233,4 @@ After each functional change:
 - Replaced hover-only tooltips in preview with always-visible perimeter callouts connected by guide lines
 - Refined preview filter UI styling for a more integrated dark HUD appearance
 - Tuned preview readability: reduced device render size and denser side-aware callout packing
+- Reworked preview callouts after feedback: no artificial image shrink, denser cards, compact text, and clearer line anchors

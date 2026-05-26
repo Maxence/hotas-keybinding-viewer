@@ -439,14 +439,6 @@
   user-select: none;
 }
 
-.device-canvas.preview-active img {
-  width: 66%;
-  height: 78%;
-  margin: 14% auto 8%;
-  object-fit: contain;
-  object-position: center bottom;
-}
-
 .zone-hitbox {
   position: absolute;
   border: none;
@@ -471,12 +463,18 @@
   stroke-linecap: round;
 }
 
+.callout-lines circle {
+  fill: rgba(170, 230, 238, 0.92);
+  stroke: rgba(6, 10, 12, 0.85);
+  stroke-width: 0.15;
+}
+
 .callout-card {
   position: absolute;
   z-index: 5;
   border: 1px solid rgba(108, 159, 166, 0.74);
   border-radius: 0.46rem;
-  padding: 0.3rem 0.42rem;
+  padding: 0.24rem 0.35rem;
   background: linear-gradient(165deg, rgba(7, 10, 12, 0.96), rgba(9, 13, 16, 0.96));
   box-shadow:
     0 8px 16px rgba(0, 0, 0, 0.42),
@@ -484,13 +482,13 @@
   color: #e6eef1;
   text-align: left;
   display: grid;
-  gap: 0.15rem;
+  gap: 0.1rem;
   overflow: hidden;
   cursor: pointer;
 }
 
 .callout-card strong {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-family: var(--mono);
   letter-spacing: 0.04em;
   color: #edf5f7;
@@ -500,7 +498,7 @@
 }
 
 .callout-card span {
-  font-size: 0.67rem;
+  font-size: 0.63rem;
   color: #c7d5da;
   line-height: 1.2;
   white-space: nowrap;

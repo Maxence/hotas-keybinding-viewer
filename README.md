@@ -89,7 +89,7 @@ En mode preview (éditeur désactivé):
 - les infobulles sont affichées en permanence autour du device
 - un trait relie chaque infobulle à la zone bouton/axe
 - placement automatique gauche/droite/haut/bas pour limiter les chevauchements
-- image device réduite en preview pour garder un espace de callouts tout autour
+- image affichée en cadrage normal (pas de réduction/crop artificiel du visuel)
 
 ### Sauvegarde et partage des zones
 
