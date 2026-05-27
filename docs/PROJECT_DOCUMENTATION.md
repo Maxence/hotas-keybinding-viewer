@@ -65,8 +65,8 @@ Zones are resolved as:
 - overridden by user-edited values from LocalStorage
 
 Storage key:
-- `hotas-viewer.zones.v2`
-- `hotas-viewer.zone-directions.v1`
+- `hotas-viewer.zones.v3`
+- `hotas-viewer.zone-directions.v2`
 
 Per-angle key format:
 - `throttle:<angleId>`
@@ -99,7 +99,8 @@ Preview callout layout:
 - Each tooltip is connected to its source zone with a line
 - Side-aware placement (`left/right/top/bottom`) with distribution by side to reduce overlap
 - Callout card size is dynamically reduced when many callouts share one side
-- Device image keeps normal framing (no preview crop/downscale)
+- Runtime keeps normal image framing (no CSS preview crop/downscale)
+- Generated primary device assets use taller/wider source crops where available
 - Source dots are rendered at anchor points to validate line targeting
 
 Legacy migration:
@@ -232,5 +233,6 @@ After each functional change:
 - Updated direction choice ordering to `left/up/right/down/center` for HAT workflows
 - Replaced hover-only tooltips in preview with always-visible perimeter callouts connected by guide lines
 - Refined preview filter UI styling for a more integrated dark HUD appearance
-- Tuned preview readability: reduced device render size and denser side-aware callout packing
+- Tuned preview readability with denser side-aware callout packing
 - Reworked preview callouts after feedback: no artificial image shrink, denser cards, compact text, and clearer line anchors
+- Regenerated primary device assets from wider/taller source crops and bumped local zone storage version to avoid stale coordinates

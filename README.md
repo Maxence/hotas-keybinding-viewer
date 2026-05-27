@@ -89,7 +89,9 @@ En mode preview (éditeur désactivé):
 - les infobulles sont affichées en permanence autour du device
 - un trait relie chaque infobulle à la zone bouton/axe
 - placement automatique gauche/droite/haut/bas pour limiter les chevauchements
-- image affichée en cadrage normal (pas de réduction/crop artificiel du visuel)
+- images régénérées avec un cadrage source plus haut/large quand possible, sans fond ajouté artificiellement
+
+Note: un changement de cadrage invalide les anciennes zones locales. Le stockage local est versionné pour forcer un redessin propre sur les nouveaux assets.
 
 ### Sauvegarde et partage des zones
 

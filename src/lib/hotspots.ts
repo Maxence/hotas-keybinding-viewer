@@ -1,7 +1,7 @@
 import type { ControlZone, DeviceKind, DirectionTag } from '../types'
 
-const ZONES_STORAGE_KEY = 'hotas-viewer.zones.v2'
-const DIRECTION_STORAGE_KEY = 'hotas-viewer.zone-directions.v1'
+const ZONES_STORAGE_KEY = 'hotas-viewer.zones.v3'
+const DIRECTION_STORAGE_KEY = 'hotas-viewer.zone-directions.v2'
 const LEGACY_HOTSPOTS_STORAGE_KEY = 'hotas-viewer.hotspots.v1'
 const ZONES_EXPORT_SCHEMA = 'hotas-zone-data'
 const ZONES_EXPORT_VERSION = 2

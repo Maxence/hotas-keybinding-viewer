@@ -1198,9 +1198,8 @@ function buildPreviewCallouts(
   editControlKey: string,
 ): PreviewCallout[] {
   const sideWidth = 24
-  const topWidth = 18
+  const topWidth = 23
   const sideHeight = 11.5
-  const topHeight = 9
 
   const provisional = zoneGroups.map((group) => {
     const sourceX = clamp(group.zone.x + group.zone.width / 2, 0, 100)
@@ -1241,7 +1240,7 @@ function buildPreviewCallouts(
       sourceX,
       sourceY,
       width: side === 'top' || side === 'bottom' ? topWidth : sideWidth,
-      height: side === 'top' || side === 'bottom' ? topHeight : computedHeight,
+      height: computedHeight,
       left: 0,
       top: 0,
       targetX: 0,
@@ -1265,8 +1264,8 @@ function buildPreviewCallouts(
     min: 4.9,
     kind: 'height',
   })
-  resizeCalloutsForSide(provisional, 'top', { available: 92, preferred: topWidth, min: 11, kind: 'width' })
-  resizeCalloutsForSide(provisional, 'bottom', { available: 92, preferred: topWidth, min: 11, kind: 'width' })
+  resizeCalloutsForSide(provisional, 'top', { available: 92, preferred: topWidth, min: 14, kind: 'width' })
+  resizeCalloutsForSide(provisional, 'bottom', { available: 92, preferred: topWidth, min: 14, kind: 'width' })
 
   placeCalloutsOnSide(provisional, 'left', { axisStart: 6, axisEnd: 94, fixedCoord: 1, axis: 'y' })
   placeCalloutsOnSide(provisional, 'right', { axisStart: 6, axisEnd: 94, fixedCoord: 75, axis: 'y' })
@@ -1358,7 +1357,7 @@ function distributeCenters(count: number, start: number, end: number): number[] 
 }
 
 function pickCalloutSide(x: number, y: number): PreviewCallout['side'] {
-  if (y <= 11 && x > 35 && x < 65) {
+  if (y <= 25 && x > 24 && x < 76) {
     return 'top'
   }
   if (y >= 89) {

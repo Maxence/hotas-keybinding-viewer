@@ -35,24 +35,24 @@ def main() -> None:
     # Front view composition split into two per-device panels.
     crop_image(
         source_name="ChatGPT Image 26 mai 2026, 19_45_46.png",
-        crop_box=(40, 500, 650, 1080),
+        crop_box=(0, 360, 720, 1130),
         destination_relative_path="throttle/throttle-front.png",
     )
     crop_image(
         source_name="ChatGPT Image 26 mai 2026, 19_45_46.png",
-        crop_box=(560, 120, 1240, 1080),
+        crop_box=(560, 0, 1254, 1220),
         destination_relative_path="joystick/joystick-front.png",
     )
 
     # Angled view composition split into two per-device panels.
     crop_image(
         source_name="ChatGPT Image 26 mai 2026, 19_48_10.png",
-        crop_box=(90, 450, 690, 1040),
+        crop_box=(0, 300, 780, 1120),
         destination_relative_path="throttle/throttle-angled.png",
     )
     crop_image(
         source_name="ChatGPT Image 26 mai 2026, 19_48_10.png",
-        crop_box=(600, 170, 1250, 1070),
+        crop_box=(620, 0, 1254, 1150),
         destination_relative_path="joystick/joystick-angled.png",
     )
 
